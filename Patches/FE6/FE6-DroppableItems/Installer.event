@@ -38,8 +38,9 @@
 	ORG $12136
 	BYTE $78 $68 $40 $6D
 
-	ORG $1c61c
-	WORD _giveItemFix + $08000000
+	ORG $1c61c // end of 1C5B0
+	POIN _giveItemFix
+	//WORD _giveItemFix + $08000000
 
 	ORG $1c5ba
 	BYTE $20 $1C $FA $F7 $76 $FF $00 $06 $00 $28 $1F $D1 $12 $48 $04 $60
@@ -90,7 +91,8 @@
 	BYTE $0E $00 $01 $00 $00 $00 $00 $00 $16 $00 $00 $00 $8D $C5 $01 $08
 	BYTE $16 $00 $00 $00 $9D $C5 $01 $08 $0B $00 $63 $00 $00 $00 $00 $00
 	BYTE $02 $00 $00 $00
-	WORD $08000000 + _giveItemFix2 + 1
+	POIN _giveItemFix2|1
+	//WORD $08000000 + _giveItemFix2 + 1
 	BYTE $0E $00 $00 $00 $00 $00 $00 $00 $00 $00 $00 $00 $00 $00 $00 $00
 	_giveItemFix2:
 	BYTE $00 $B5 $04 $48 $00 $7B $04 $4B $00 $F0 $0A $F8 $03 $49 $08 $60

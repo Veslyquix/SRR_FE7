@@ -1,0 +1,257 @@
+256
+0x00 None
+0x01 Roy Lock
+0x02 Myrmidon/Swordmaster
+0x03 Roy Lock,Myrmidon/Swordmaster
+0x04 Manakete Lock
+0x05 Roy Lock,Manakete Lock
+0x06 Myrmidon/Swordmaster,Manakete Lock
+0x07 Roy Lock,Myrmidon/Swordmaster,Manakete Lock
+0x08 Zephiel Lock
+0x09 Roy Lock,Zephiel Lock
+0x0A Myrmidon/Swordmaster,Zephiel Lock
+0x0B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock
+0x0C Manakete Lock,Zephiel Lock
+0x0D Roy Lock,Manakete Lock,Zephiel Lock
+0x0E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock
+0x0F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock
+0x10 Disable Unit Select
+0x11 Roy Lock,Disable Unit Select
+0x12 Myrmidon/Swordmaster,Disable Unit Select
+0x13 Roy Lock,Myrmidon/Swordmaster,Disable Unit Select
+0x14 Manakete Lock,Disable Unit Select
+0x15 Roy Lock,Manakete Lock,Disable Unit Select
+0x16 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select
+0x17 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select
+0x18 Zephiel Lock,Disable Unit Select
+0x19 Roy Lock,Zephiel Lock,Disable Unit Select
+0x1A Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select
+0x1B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select
+0x1C Manakete Lock,Zephiel Lock,Disable Unit Select
+0x1D Roy Lock,Manakete Lock,Zephiel Lock,Disable Unit Select
+0x1E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select
+0x1F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select
+0x20 Triangle Attack 1
+0x21 Roy Lock,Triangle Attack 1
+0x22 Myrmidon/Swordmaster,Triangle Attack 1
+0x23 Roy Lock,Myrmidon/Swordmaster,Triangle Attack 1
+0x24 Manakete Lock,Triangle Attack 1
+0x25 Roy Lock,Manakete Lock,Triangle Attack 1
+0x26 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1
+0x27 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1
+0x28 Zephiel Lock,Triangle Attack 1
+0x29 Roy Lock,Zephiel Lock,Triangle Attack 1
+0x2A Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 1
+0x2B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 1
+0x2C Manakete Lock,Zephiel Lock,Triangle Attack 1
+0x2D Roy Lock,Manakete Lock,Zephiel Lock,Triangle Attack 1
+0x2E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 1
+0x2F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 1
+0x30 Disable Unit Select,Triangle Attack 1
+0x31 Roy Lock,Disable Unit Select,Triangle Attack 1
+0x32 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1
+0x33 Roy Lock,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1
+0x34 Manakete Lock,Disable Unit Select,Triangle Attack 1
+0x35 Roy Lock,Manakete Lock,Disable Unit Select,Triangle Attack 1
+0x36 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1
+0x37 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1
+0x38 Zephiel Lock,Disable Unit Select,Triangle Attack 1
+0x39 Roy Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1
+0x3A Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 1
+0x3B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 1
+0x3C Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1
+0x3D Roy Lock,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1
+0x3E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1
+0x3F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1
+0x40 Triangle Attack 2
+0x41 Roy Lock,Triangle Attack 2
+0x42 Myrmidon/Swordmaster,Triangle Attack 2
+0x43 Roy Lock,Myrmidon/Swordmaster,Triangle Attack 2
+0x44 Manakete Lock,Triangle Attack 2
+0x45 Roy Lock,Manakete Lock,Triangle Attack 2
+0x46 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 2
+0x47 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 2
+0x48 Zephiel Lock,Triangle Attack 2
+0x49 Roy Lock,Zephiel Lock,Triangle Attack 2
+0x4A Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 2
+0x4B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 2
+0x4C Manakete Lock,Zephiel Lock,Triangle Attack 2
+0x4D Roy Lock,Manakete Lock,Zephiel Lock,Triangle Attack 2
+0x4E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 2
+0x4F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 2
+0x50 Disable Unit Select,Triangle Attack 2
+0x51 Roy Lock,Disable Unit Select,Triangle Attack 2
+0x52 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 2
+0x53 Roy Lock,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 2
+0x54 Manakete Lock,Disable Unit Select,Triangle Attack 2
+0x55 Roy Lock,Manakete Lock,Disable Unit Select,Triangle Attack 2
+0x56 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 2
+0x57 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 2
+0x58 Zephiel Lock,Disable Unit Select,Triangle Attack 2
+0x59 Roy Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2
+0x5A Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 2
+0x5B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 2
+0x5C Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2
+0x5D Roy Lock,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2
+0x5E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2
+0x5F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2
+0x60 Triangle Attack 1,Triangle Attack 2
+0x61 Roy Lock,Triangle Attack 1,Triangle Attack 2
+0x62 Myrmidon/Swordmaster,Triangle Attack 1,Triangle Attack 2
+0x63 Roy Lock,Myrmidon/Swordmaster,Triangle Attack 1,Triangle Attack 2
+0x64 Manakete Lock,Triangle Attack 1,Triangle Attack 2
+0x65 Roy Lock,Manakete Lock,Triangle Attack 1,Triangle Attack 2
+0x66 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Triangle Attack 2
+0x67 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Triangle Attack 2
+0x68 Zephiel Lock,Triangle Attack 1,Triangle Attack 2
+0x69 Roy Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2
+0x6A Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 1,Triangle Attack 2
+0x6B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 1,Triangle Attack 2
+0x6C Manakete Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2
+0x6D Roy Lock,Manakete Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2
+0x6E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2
+0x6F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2
+0x70 Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x71 Roy Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x72 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x73 Roy Lock,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x74 Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x75 Roy Lock,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x76 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x77 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x78 Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x79 Roy Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7A Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7C Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7D Roy Lock,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x80 NPC
+0x81 Roy Lock,NPC
+0x82 Myrmidon/Swordmaster,NPC
+0x83 Roy Lock,Myrmidon/Swordmaster,NPC
+0x84 Manakete Lock,NPC
+0x85 Roy Lock,Manakete Lock,NPC
+0x86 Myrmidon/Swordmaster,Manakete Lock,NPC
+0x87 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,NPC
+0x88 Zephiel Lock,NPC
+0x89 Roy Lock,Zephiel Lock,NPC
+0x8A Myrmidon/Swordmaster,Zephiel Lock,NPC
+0x8B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,NPC
+0x8C Manakete Lock,Zephiel Lock,NPC
+0x8D Roy Lock,Manakete Lock,Zephiel Lock,NPC
+0x8E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,NPC
+0x8F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,NPC
+0x90 Disable Unit Select,NPC
+0x91 Roy Lock,Disable Unit Select,NPC
+0x92 Myrmidon/Swordmaster,Disable Unit Select,NPC
+0x93 Roy Lock,Myrmidon/Swordmaster,Disable Unit Select,NPC
+0x94 Manakete Lock,Disable Unit Select,NPC
+0x95 Roy Lock,Manakete Lock,Disable Unit Select,NPC
+0x96 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,NPC
+0x97 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,NPC
+0x98 Zephiel Lock,Disable Unit Select,NPC
+0x99 Roy Lock,Zephiel Lock,Disable Unit Select,NPC
+0x9A Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,NPC
+0x9B Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,NPC
+0x9C Manakete Lock,Zephiel Lock,Disable Unit Select,NPC
+0x9D Roy Lock,Manakete Lock,Zephiel Lock,Disable Unit Select,NPC
+0x9E Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,NPC
+0x9F Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,NPC
+0xA0 Triangle Attack 1,NPC
+0xA1 Roy Lock,Triangle Attack 1,NPC
+0xA2 Myrmidon/Swordmaster,Triangle Attack 1,NPC
+0xA3 Roy Lock,Myrmidon/Swordmaster,Triangle Attack 1,NPC
+0xA4 Manakete Lock,Triangle Attack 1,NPC
+0xA5 Roy Lock,Manakete Lock,Triangle Attack 1,NPC
+0xA6 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,NPC
+0xA7 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,NPC
+0xA8 Zephiel Lock,Triangle Attack 1,NPC
+0xA9 Roy Lock,Zephiel Lock,Triangle Attack 1,NPC
+0xAA Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 1,NPC
+0xAB Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 1,NPC
+0xAC Manakete Lock,Zephiel Lock,Triangle Attack 1,NPC
+0xAD Roy Lock,Manakete Lock,Zephiel Lock,Triangle Attack 1,NPC
+0xAE Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 1,NPC
+0xAF Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 1,NPC
+0xB0 Disable Unit Select,Triangle Attack 1,NPC
+0xB1 Roy Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xB2 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,NPC
+0xB3 Roy Lock,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,NPC
+0xB4 Manakete Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xB5 Roy Lock,Manakete Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xB6 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xB7 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xB8 Zephiel Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xB9 Roy Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xBA Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xBB Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xBC Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xBD Roy Lock,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xBE Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xBF Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,NPC
+0xC0 Triangle Attack 2,NPC
+0xC1 Roy Lock,Triangle Attack 2,NPC
+0xC2 Myrmidon/Swordmaster,Triangle Attack 2,NPC
+0xC3 Roy Lock,Myrmidon/Swordmaster,Triangle Attack 2,NPC
+0xC4 Manakete Lock,Triangle Attack 2,NPC
+0xC5 Roy Lock,Manakete Lock,Triangle Attack 2,NPC
+0xC6 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 2,NPC
+0xC7 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 2,NPC
+0xC8 Zephiel Lock,Triangle Attack 2,NPC
+0xC9 Roy Lock,Zephiel Lock,Triangle Attack 2,NPC
+0xCA Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 2,NPC
+0xCB Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 2,NPC
+0xCC Manakete Lock,Zephiel Lock,Triangle Attack 2,NPC
+0xCD Roy Lock,Manakete Lock,Zephiel Lock,Triangle Attack 2,NPC
+0xCE Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 2,NPC
+0xCF Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 2,NPC
+0xD0 Disable Unit Select,Triangle Attack 2,NPC
+0xD1 Roy Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xD2 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 2,NPC
+0xD3 Roy Lock,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 2,NPC
+0xD4 Manakete Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xD5 Roy Lock,Manakete Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xD6 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xD7 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xD8 Zephiel Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xD9 Roy Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xDA Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xDB Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xDC Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xDD Roy Lock,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xDE Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xDF Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 2,NPC
+0xE0 Triangle Attack 1,Triangle Attack 2,NPC
+0xE1 Roy Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xE2 Myrmidon/Swordmaster,Triangle Attack 1,Triangle Attack 2,NPC
+0xE3 Roy Lock,Myrmidon/Swordmaster,Triangle Attack 1,Triangle Attack 2,NPC
+0xE4 Manakete Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xE5 Roy Lock,Manakete Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xE6 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xE7 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xE8 Zephiel Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xE9 Roy Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xEA Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xEB Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xEC Manakete Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xED Roy Lock,Manakete Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xEE Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xEF Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Triangle Attack 1,Triangle Attack 2,NPC
+0xF0 Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF1 Roy Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF2 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF3 Roy Lock,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF4 Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF5 Roy Lock,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF6 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF7 Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF8 Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xF9 Roy Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xFA Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xFB Roy Lock,Myrmidon/Swordmaster,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xFC Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xFD Roy Lock,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xFE Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC
+0xFF Roy Lock,Myrmidon/Swordmaster,Manakete Lock,Zephiel Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,NPC

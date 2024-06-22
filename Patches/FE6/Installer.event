@@ -1,12 +1,12 @@
 
 
-
+#include "Tables/TableInstaller.event" 
 #include "FE6-BattleStats/Installer.event" 
 #include "FE6-DroppableItems/Installer.event"
 #include "NullMoveDisplay/Installer.event" 
 #include "UpdatedLButtonCycling/Installer.event"
 #include "FE6-HPBars/Installer.event"
-
+#include "StatClassEx_FE6/Installer.event" 
 
 
 

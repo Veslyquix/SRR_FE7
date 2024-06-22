@@ -292,9 +292,12 @@ typedef struct {
 	s8 digit; 
 	u8 freezeSeed; 
 	u8 calledFromChapter; 
+	u8 reloadUnits; 
+	u8 skill; 
+	u8 choosingSkill; 
 	s8 Option[20];
 } ConfigMenuProc;
-
+void ReloadAllUnits(ConfigMenuProc*); 
 struct DispCnt {
     /* bit  0 */ u16 mode : 3;
     /* bit  3 */ u16 cgbMode : 1; // reserved, do not use
@@ -472,3 +475,34 @@ struct ROMChapterData {
 };
 const struct ROMChapterData* GetROMChapterStruct(unsigned chIndex); 
 #endif 
+struct HelpBoxProc
+{
+    /* 00 */ PROC_HEADER;
+
+    /* 2C */ const struct HelpBoxInfo* info;
+
+    /* 30 */ short xBox;
+    /* 32 */ short yBox;
+    /* 34 */ short wBox;
+    /* 36 */ short hBox;
+    /* 38 */ short xBoxInit;
+    /* 3A */ short yBoxInit;
+    /* 3C */ short xBoxFinal;
+    /* 3E */ short yBoxFinal;
+    /* 40 */ short wBoxInit;
+    /* 42 */ short hBoxInit;
+    /* 44 */ short wBoxFinal;
+    /* 46 */ short hBoxFinal;
+    /* 48 */ short timer;
+    /* 4A */ short timerMax;
+
+    /* 4C */ u16 mid;
+    /* 4E */ u16 item;
+
+    /* 50 */ u16 moveKey; // move ctrl proc only
+
+    /* 52 */ u8 unk52;
+
+    // NOTE: there's likely more, need to decompile more files
+};
+

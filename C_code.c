@@ -1,4 +1,6 @@
 
+//#define FORCE_SPECIFIC_SEED
+#define VersionNumber " SRR V1.4.8"
 
 #ifdef FE8 
 #include "headers/prelude.h"
@@ -15,11 +17,14 @@
 #include "headers/types.h"
 #endif  
 
+extern int maxStat; 
+int GetGlobalStatCap(void); 
  
 #include "headers/gbafe.h" 
 #define PUREFUNC __attribute__((pure))
 #define ARMFUNC __attribute__((target("arm")))
 int Div(int a, int b) PUREFUNC;
+int Div1(int a, int b) PUREFUNC;
 int Mod(int a, int b) PUREFUNC;
 int DivArm(int b, int a) PUREFUNC;
 extern u8 gCh; 
@@ -34,34 +39,49 @@ extern int CasualModeFlag;
 #define true 1 
 #define false 0
 
-//#define ALWAYS50 // make growths 50 
-
 struct RandomizerSettings { 
 	u32 base : 2; // vanilla, random 
 	u32 growth : 2; // vanilla, randomized, 0%, 100%
 	u32 levelups : 2; // vanilla, seeded, fixed, pad 
-	u32 caps : 2; // vanilla, randomized, 30 
+	u32 caps : 3; // vanilla, randomized, 0, 15, 30, 45, 60 
 	u32 class : 2; // vanilla, randomized, players only, enemies only  
-	
 	u32 shopItems : 1; 
-	u32 disp : 1; // stat screen display 
 	u32 foundItems : 2; // vanilla, random 
 	u32 randMusic : 2;  // vanilla, random
 	u32 colours : 3; // vanilla, random, janky, portraits only 
 	u32 itemStats : 2; // vanilla, random 
-	u32 itemDur : 2; // vanilla, infinite 
+	u32 itemDur : 2; // vanilla, infinite weps, infinite 
 	u32 playerBonus : 5; // +20 / -10 levels for players 
-}; // 28 / 32 bits used 
+	u32 grow50 : 1; // always 50% 
+	u32 fog : 2; // vanilla, always off, always on 
+	u32 disp : 1; // stat screen display 
+}; // 32 / 32 bits used 
 
 
 struct RandomizerValues { 
 	u32 seed : 20; // max value of 999999 /  
 	u32 variance : 5; // up to 5*31 / 100% 
 	u32 bonus : 5; // +20 / -10 levels for enemies 
+	u32 skills : 2; // vanilla, random, fixed, rand + x skill 
 }; 
- 
+
+struct RecruitmentValues { 
+	u8 recruitment : 3; 
+	u8 pauseNameReplace : 1; 
+}; 
+struct TimedHitsDifficultyStruct { 
+	u8 difficulty : 5; 
+	u8 alwaysA : 1; 
+	u8 off : 1; 
+	u8 cheats : 1; 
+}; 
+extern struct TimedHitsDifficultyStruct* TimedHitsDifficultyRam; 
+
+extern struct RecruitmentValues* RecruitValues; 
+
 extern struct RandomizerSettings* RandBitflags; 
 extern struct RandomizerValues* RandValues; 
+
 extern u8* MaxItems; 
 extern int MaxItems_Link; 
 extern u8* MaxClasses; 
@@ -74,9 +94,485 @@ struct ExceptionsStruct {
 extern struct ExceptionsStruct ItemExceptions[]; 
 extern struct ExceptionsStruct ClassExceptions[]; 
 extern struct ExceptionsStruct CharExceptions[]; 
+extern struct ExceptionsStruct SkillExceptions[]; 
 extern int SkillSysInstalled; 
 extern int StrMagInstalled;
 extern int DefaultConfigToVanilla;
+
+#define SET_TEXT_USED
+//#define STRINGS_IN_ROM // faster if defined, but gotta write all the names in the installer 
+
+
+#define TempTextBufferSize 14  
+typedef struct {
+    /* 00 */ PROC_HEADER;
+	u8 count; 
+	u8 id[0x40];
+} RecruitmentProc;
+RecruitmentProc* InitRandomRecruitmentProc(int procID); 
+void LoopRandomRecruitmentProc(RecruitmentProc* proc) { return; } 
+const struct ProcCmd RecruitmentProcCmd1[] =
+{
+	PROC_NAME("ReorderedRecruitment_One"), 
+    PROC_YIELD,
+	PROC_REPEAT(LoopRandomRecruitmentProc), 
+    PROC_END,
+};
+const struct ProcCmd RecruitmentProcCmd2[] =
+{
+	PROC_NAME("ReorderedRecruitment_Two"), 
+    PROC_YIELD,
+	PROC_REPEAT(LoopRandomRecruitmentProc), 
+    PROC_END,
+};
+const struct ProcCmd RecruitmentProcCmd3[] =
+{
+	PROC_NAME("ReorderedRecruitment_Three"), 
+    PROC_YIELD,
+	PROC_REPEAT(LoopRandomRecruitmentProc), 
+    PROC_END,
+};
+const struct ProcCmd RecruitmentProcCmd4[] =
+{
+	PROC_NAME("ReorderedRecruitment_Four"), 
+    PROC_YIELD,
+	PROC_REPEAT(LoopRandomRecruitmentProc), 
+    PROC_END,
+};
+
+
+int ShouldRandomizeRecruitment(void) { 
+	return RecruitValues->recruitment; 
+}
+int ShouldRandomizeRecruitmentForUnitID(int id) { 
+	if (!GetCharacterData(id)->portraitId) { return false; } 
+	return ShouldRandomizeRecruitment(); 
+}
+
+int ShouldRandomizeRecruitmentForPortraitID(int id) { 
+	if (!id) { return false; } 
+	//if (id > PlayerPortraitSize) { return false; } // players only atm 
+	return ShouldRandomizeRecruitment(); 
+}
+u16 HashByte_Global(int number, int max, int noise[], int offset); 
+
+u32 GetNthRN_Simple(int n, int seed, u32 currentRN);
+u32 HashByte_Simple(u32 rn, int max) {
+	if (max==0) return 0;
+	return Mod((rn >> 3), max);
+}; 
+
+
+extern u8 VanillaSkill[]; 
+extern int NumberOfSkills; 
+extern u8* AlwaysSkill; 
+int RandomizeSkill(int id, struct Unit* unit) { 
+	if (!id) { return 0; } 
+	if (SkillExceptions[id].NeverChangeFrom) { return id; } 
+	if (!RandValues->skills) { if (!VanillaSkill[id]) { return 0; } else { return id; } } 
+	if (RandValues->skills == 2) { return id; } 
+	const struct CharacterData* table = unit->pCharacterData; 	
+	int noise[4] = { table->number, id, id, table->portraitId }; 
+	id = HashByte_Global(id, NumberOfSkills-1, noise, 12)+1; // never 0 
+	if (SkillExceptions[id].NeverChangeInto) { return 0; } 
+	return id; 
+} 
+
+int GetAlwaysSkill(struct Unit* unit) { 
+	//if (UNIT_FACTION(unit) == FACTION_RED) { return 0; } 
+	if (RandValues->skills != 3) { return 0; } 
+	return *AlwaysSkill; 
+} 
+
+extern u8 AlwaysSkillTable[]; 
+int GetNextAlwaysSkill(int id) { 
+	id++; 
+	for (int i = id; i < NumberOfSkills; ++i) { 
+		if (AlwaysSkillTable[i]) { return i; } 
+	} 
+	for (int i = 0; i < NumberOfSkills; ++i) { 
+		if (AlwaysSkillTable[i]) { return i; } 
+	} 
+	return 0; 
+} 
+int GetPreviousAlwaysSkill(int id) { 
+	id--; 
+	for (int i = id; i > 0; --i) { 
+		if (AlwaysSkillTable[i]) { return i; } 
+	} 
+	for (int i = NumberOfSkills; i > 0; --i) { 
+		if (AlwaysSkillTable[i]) { return i; } 
+	} 
+	return 0; 
+} 
+
+#ifdef FE6 
+#define MAX_CHAR_ID 0xE2 
+#endif 
+#ifdef FE7
+#define MAX_CHAR_ID 0xFD 
+#endif 
+#ifdef FE8 
+#define MAX_CHAR_ID 0xFF 
+#endif 
+
+
+#ifdef FE8 
+#define ListSize 120 //0x22
+#define PlayerPortraitSize 0x2C
+#endif 
+#ifdef FE7 
+#define ListSize MAX_CHAR_ID //0x28 
+#define PlayerPortraitSize 0x4a
+#endif 
+#ifdef FE6 
+#define ListSize MAX_CHAR_ID //0x3f // 0x44 but max is 0x3f atm? 
+#define PlayerPortraitSize 0x35
+#endif 
+extern u8 ReplacePortraitTable[]; 
+int GetUnitIdOfPortrait(int portraitID) { 
+	if (portraitID < 0x100) { 
+		if (ReplacePortraitTable[portraitID]) { portraitID = ReplacePortraitTable[portraitID]; } 
+	} 
+	const struct CharacterData* table = GetCharacterData(1); 
+	for (int i = 1; i <= MAX_CHAR_ID; i++) { 
+		if (table->portraitId == portraitID) { return table->number; } 
+		table++; 
+	} 
+	return 0;
+} 
+
+
+
+const struct CharacterData* GetReorderedCharacter(const struct CharacterData* table) { 
+	if (!table->portraitId) { return table; } 
+	RecruitmentProc* proc = NULL; 
+	int id = table->number; 
+	if (!ShouldRandomizeRecruitmentForUnitID(id)) { return GetCharacterData(id); } 
+	
+	int procID = id >> 6; // 0, 1, 2, or 3 
+	
+	switch (procID) { 
+		case 0: { 	
+			proc = Proc_Find(RecruitmentProcCmd1); 
+			break; 
+		}
+		case 1: { 	
+			proc = Proc_Find(RecruitmentProcCmd2); 
+			break; 
+		}
+		case 2: { 	
+			proc = Proc_Find(RecruitmentProcCmd3); 
+			break; 
+		}
+		case 3: { 	
+			proc = Proc_Find(RecruitmentProcCmd4); 
+			break; 
+		}
+		default:
+	}
+	
+	if (!proc) { proc = InitRandomRecruitmentProc(procID); } 
+	
+	int unitID = proc->id[(id&0x3F)-1];
+	if (!unitID) { unitID = id; } 
+	return GetCharacterData(unitID);
+}
+
+const struct CharacterData* GetReorderedUnit(struct Unit* unit) { 
+	return GetReorderedCharacter(unit->pCharacterData); 
+} 
+int GetReorderedUnitID(struct Unit* unit) { 
+	return GetReorderedCharacter(unit->pCharacterData)->number; 
+} 
+int GetReorderedCharacterPortraitByPortrait(int portraitID) { 
+	int result = GetUnitIdOfPortrait(portraitID); 
+	if (!result) { return portraitID; }
+	return GetReorderedCharacter(GetCharacterData(result))->portraitId; 
+} 
+
+
+int GetRandomizedPortrait(int portraitID, int seed) {  
+	if (portraitID < 0) { return portraitID; } 
+	if (!ShouldRandomizeRecruitmentForPortraitID(portraitID)) { return portraitID; } 
+	int result = GetReorderedCharacterPortraitByPortrait(portraitID); 
+	
+	if (!result) { return portraitID; } 
+	// if no unitID with this portrait, show a random one (before class cards) 
+	#ifdef FE8 
+	if (!result) { return HashByte_Simple(GetNthRN_Simple(portraitID, seed, 0), 0x71)+2; } 
+	#endif 
+	#ifdef FE7 
+	if (!result) { return HashByte_Simple(GetNthRN_Simple(portraitID, seed, 0), 0xBD)+2; } 
+	#endif 
+	#ifdef FE6 
+	if (!result) { return HashByte_Simple(GetNthRN_Simple(portraitID, seed, 0), 0x98)+2; } 
+	#endif 
+	//
+	return result; 
+} 
+
+int GetNameTextIdOfRandomizedPortrait(int portraitID, int seed) { 
+	portraitID = GetRandomizedPortrait(portraitID, seed); 
+	const struct CharacterData* table = GetCharacterData(1); 
+	for (int i = 1; i <= 0xFF; i++) { 
+		if (table->portraitId == portraitID) { return table->nameTextId; } 
+		//asm("mov r11, r11"); 
+		table++; 
+	
+	} 
+	return 1; // "Yes"
+} 
+
+int CanCharacterBecomeBoss(const struct CharacterData* table) { 
+	//if (table->number > 0x40
+	int boss; 
+	boss = table->attributes & (CA_BOSS);
+	if ((RecruitValues->recruitment == 5)) { return false; } 
+	if ((!boss) && (RecruitValues->recruitment == 4)) { return true; } // players become bosses and vice versa 
+	if (boss) { return true; } 
+	return false; 
+}
+int MustCharacterBecomeBoss(const struct CharacterData* table) { 
+	int boss; 
+	boss = table->attributes & (CA_BOSS);
+	if ((RecruitValues->recruitment == 5)) { return false; } 
+	//if ((!boss) && (RecruitValues->recruitment == 4)) { return true; } // players become bosses and vice versa 
+	//if ((boss) && (RecruitValues->recruitment == 4)) { return false; } // players become bosses and vice versa 
+	if (boss) { return true; } 
+	return false; 
+
+}
+
+int GetAdjustedCharacterID(const struct CharacterData* table) { 
+	int portraitID = table->portraitId; 
+	if (!portraitID) { return table->number; } 
+	const struct CharacterData* table2 = GetCharacterData(1); 
+	for (int i = 0; i<MAX_CHAR_ID; ++i) { // replace duplicate unit IDs (eg. Lyn without supports and Lyn with supports becomes the same char) 
+		if ((portraitID == table2->portraitId) && (table2->pSupportData)) { return table2->number; } 
+		table2++;
+	} 
+	#ifdef FE7 
+	if ((table->attributes & CA_MAXLEVEL10) && (!(table->attributes & CA_BOSS))) { // Replace morphs 
+		int nameTextId = table->nameTextId; 
+		table2 = GetCharacterData(1); 
+		for (int i = 0; i<MAX_CHAR_ID; ++i) {  
+			if ((nameTextId == table2->nameTextId)) { return table2->number; } 
+			//if ((nameTextId == table2->nameTextId) && (!(table2->attributes & CA_MAXLEVEL10))) { return table2->number; } 
+			table2++;
+		} 
+	} 
+	#endif 
+	
+	return table->number; 
+} 
+
+
+// lyn mode units have no support pointers, so perhaps use that? 
+int GetUnitListToUse(const struct CharacterData* table, int boss, int excludeNoSupports) { 
+	int result = 0; 
+	if (table->number > MAX_CHAR_ID) { return result; } 
+	if (!table->portraitId) { return result; } 
+	// look for duplicate units 
+	#ifndef FE8 
+	if (excludeNoSupports) { 
+		if (!table->pSupportData) { if (table->number != GetAdjustedCharacterID(table)) { return 0; } } 
+	}
+	#endif 
+	result = 1; 
+	//if (boss && (CanCharacterBecomeBoss(table))) { result = 1; } 
+	if (boss && (MustCharacterBecomeBoss(table))) { result = 2; } 
+	if (result == 1) { if (RecruitValues->recruitment == 2) { result = 0; } } 
+	if (result == 2) { if (RecruitValues->recruitment == 1) { result = 0; } } 
+	if (RecruitValues->recruitment < 4) { 
+		if (result == 1) { 
+			#ifdef FE6
+			if (table->number > 0x44) { return 0; } 
+			#endif 
+			
+			#ifdef FE7 
+			if (table->number > 0x3A) { return 0; } 
+			#endif 
+			#ifdef FE8 
+			if (table->number > 0x2c) { return 0; } 
+			#endif 
+		}
+	} 
+	if (RecruitValues->recruitment == 5) { result = 1; } 
+	//if (!boss && (MustCharacterBecomeBoss(table))) { result = false; } 
+	//asm("mov r11, r11"); 
+	return result; 
+}  
+
+
+int CallGetUnitListToUse(const struct CharacterData* table, int boss, int excludeNoSupports) { 
+	int result = GetUnitListToUse(table, boss, excludeNoSupports); 
+	if (RecruitValues->recruitment == 4) { if (result == 1) { return 2; } else if (result == 2) { return 1; } }  
+	return result; 
+} 
+
+RecruitmentProc* InitRandomRecruitmentProc(int procID) { 
+	u8 unit[80]; 
+	u8 bosses[80]; 
+	const struct CharacterData* table = GetCharacterData(1); 
+	int c = 0; 
+	int b = 0; // bosses count 
+	int seed = RandValues->seed; 
+	
+	RecruitmentProc* proc1 = Proc_Start(RecruitmentProcCmd1, PROC_TREE_3); 
+	RecruitmentProc* proc2 = Proc_Start(RecruitmentProcCmd2, PROC_TREE_3); 
+	RecruitmentProc* proc3 = Proc_Start(RecruitmentProcCmd3, PROC_TREE_3); 
+	RecruitmentProc* proc4 = Proc_Start(RecruitmentProcCmd4, PROC_TREE_3); 
+	RecruitmentProc* proc = proc1;  
+	int boss; 
+	table--; 
+	for (int i = 0; i <= MAX_CHAR_ID; ++i) { // all available units 
+		table++; 
+		if (i == 0x40) { proc = proc2; } 
+		if (i == 0x80) { proc = proc3; } 
+		if (i == 0xC0) { proc = proc4; } 
+		proc->id[i&0x3F] = 0x0; 
+		#ifdef FE7 
+		if ((table->attributes & CA_MAXLEVEL10) && (!(table->attributes & CA_BOSS))) { continue; } // Morphs 
+		#endif 
+		boss = table->attributes & (CA_BOSS);
+		switch (GetUnitListToUse(table, boss, true)) { 
+			case 0: { continue; break; } 
+			case 1: { 
+				unit[c] = i+1; 
+				c++; 
+				break; 
+			}
+			case 2: { 
+				bosses[b] = i+1; 
+				b++; 
+				break;
+			} 
+			default: 
+		}
+	} 
+	//proc->count = c; 
+	proc = proc4; 
+	int c_max = c; 
+	int b_max = b; 
+	int num; 
+	u32 rn = 0; 
+	//table = GetCharacterData(MAX_CHAR_ID);  
+	for (int i = MAX_CHAR_ID; i > 0 ; --i) { // reordered at random 
+		//table--; 
+		if (i <= 0xBF) { proc = proc3; } 
+		if (i <= 0x7F) { proc = proc2; } 
+		if (i <= 0x3F) { proc = proc1; } 
+		table = GetCharacterData(i);  
+		#ifdef FE7 
+		if ((table->attributes & CA_MAXLEVEL10) && (!(table->attributes & CA_BOSS))) { continue; } // Morphs 
+		#endif 
+		boss = table->attributes & (CA_BOSS);
+		
+		switch (CallGetUnitListToUse(table, boss, true)) { 
+			case 0: { continue; break; } 
+			case 1: { 
+			rn = GetNthRN_Simple(i-1, seed, rn);  
+			c--; 
+			if (c < 0) { c = c_max-1; } 
+			num = HashByte_Simple(rn, c); 
+			proc->id[(i&0x3F)-1] = unit[num]; 
+			unit[num] = unit[c]; // move last entry to one we just used 
+			unit[c] = proc->id[(i&0x3F)-1];
+				break; 
+			}
+			case 2: {
+				rn = GetNthRN_Simple(i-1, seed, rn);  				
+				b--; 
+				if (b < 0) { b = b_max-1; } 
+				//if (b < 0) { proc->id[(i&0x3F)-1] = 0xFD; continue; } 
+				num = HashByte_Simple(rn, b); 
+				proc->id[(i&0x3F)-1] = bosses[num]; 
+				bosses[num] = bosses[b]; // move last entry to one we just used 
+				bosses[b] = proc->id[(i&0x3F)-1];
+				break;
+			} 
+			default: 
+		}
+		
+	} 
+	//asm("mov r11, r11"); 
+	
+	//#ifndef FE8 // breaks with skillsys atm 
+	proc = proc4; 
+	for (int i = MAX_CHAR_ID; i > 0 ; --i) { 
+		//table--; 
+		if (i <= 0xBF) { proc = proc3; } 
+		if (i <= 0x7F) { proc = proc2; } 
+		if (i <= 0x3F) { proc = proc1; } 
+		table = GetCharacterData(i);  
+		boss = table->attributes & (CA_BOSS);
+		//if (GetUnitListToUse(table, boss, false)) { 
+			num = GetAdjustedCharacterID(table);
+			if (num != (i+1)) { 
+				switch (num >> 6) { 
+					case 0: { proc->id[(i&0x3F)-1] =  proc1->id[(num&0x3F)-1]; break; } 
+					case 1: { proc->id[(i&0x3F)-1] =  proc2->id[(num&0x3F)-1]; break; } 
+					case 2: { proc->id[(i&0x3F)-1] =  proc3->id[(num&0x3F)-1]; break; } 
+					case 3: { proc->id[(i&0x3F)-1] =  proc4->id[(num&0x3F)-1]; break; } 
+					default: 
+				} 
+			}  
+		//}		
+		
+	} 
+	//#endif 
+	switch (procID) { 
+		case 0: { return proc1; break; } 
+		case 1: { return proc2; break; } 
+		case 2: { return proc3; break; } 
+		case 3: { return proc4; break; } 
+		default: 
+	}
+	return NULL; 
+	
+
+} 
+
+
+void HbPopulate_SSCharacter(struct HelpBoxProc* proc) // fe7 0x80816FC fe6 0x80704DC 
+{
+	if (ShouldRandomizeRecruitmentForUnitID(gStatScreen.unit->pCharacterData->number)) { 
+		int midDesc = GetReorderedUnit(gStatScreen.unit)->descTextId;
+
+		if (midDesc) {
+		proc->mid = midDesc; }
+		else {
+		#ifdef FE8 // +0x4C 
+		proc->mid = 0x6BE; } // TODO: mid constants
+		#endif 
+		#ifdef FE7 // +0x4C 
+		proc->mid = 0x396; } // TODO: mid constants
+		#endif 
+		#ifdef FE6 // +0x4C 
+		proc->mid = 0x66d; } // TODO: mid constants
+		#endif 
+		return; 
+	} 
+	
+	
+    int midDesc = gStatScreen.unit->pCharacterData->descTextId;
+
+		if (midDesc) {
+		proc->mid = midDesc; }
+		else {
+		#ifdef FE8 // +0x4C 
+		proc->mid = 0x6BE; } // TODO: mid constants
+		#endif 
+		#ifdef FE7 // +0x4C 
+		proc->mid = 0x396; } // TODO: mid constants
+		#endif 
+		#ifdef FE6 // +0x4C 
+		proc->mid = 0x66d; } // TODO: mid constants
+		#endif 
+		return; 
+}
+
 
 
 
@@ -95,9 +591,12 @@ int ShouldRandomizeBGM(void) {
 
 
 u16 GetItemAfterUse(int item) { // 16AEC 8016730 8016928 
-    if ((GetItemAttributes(item) & IA_UNBREAKABLE) || (RandBitflags->itemDur))
-        return item; // unbreakable items don't lose uses!
+	int attr = GetItemAttributes(item);
+    if ((attr & IA_UNBREAKABLE) || (RandBitflags->itemDur == 2)) { 
+	return item; } // unbreakable items don't lose uses!
 
+	if ((RandBitflags->itemDur == 1) && ((attr & (IA_WEAPON|IA_STAFF)) || (GetItemData(item&0xFF)->weaponType == 0xC))) { return item; } 
+	
     item -= (1 << 8); // lose one use
 
     if (item < (1 << 8))
@@ -108,7 +607,8 @@ u16 GetItemAfterUse(int item) { // 16AEC 8016730 8016928
 
 int GetItemAttributes(int item) { // 801727C
 	u32 attr = GetItemData(item & 0xFF)->attributes;
-	if (RandBitflags->itemDur) { attr |= IA_UNBREAKABLE; } 
+	if ((RandBitflags->itemDur == 1) && ((attr & (IA_WEAPON|IA_STAFF)) || (GetItemData(item&0xFF)->weaponType == 0xC))) { attr |= IA_UNBREAKABLE; } 
+	if (RandBitflags->itemDur == 2) { attr |= IA_UNBREAKABLE; } 
 	return attr; 
 }
 
@@ -142,7 +642,7 @@ u8 static const MapMusicList[] = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,2
 extern int GetCurrentMapMusicIndex(void); 
 int GetBGMTrack(){ // fe7/fe8 only? 
 	if (!ShouldRandomizeBGM()) { return GetCurrentMapMusicIndex(); } 
-	int noise[4] = {1, 2, 0, 0}; 
+	int noise[4] = {1, 2, gCh, 0}; 
 	int number = gPhase; 
 	//if (gActiveUnit) { 
 	//	noise[0] = gActiveUnit->xPos; 
@@ -239,7 +739,62 @@ void sub_80328B0(void) {
 
     return;
 }
+extern unsigned GetGameClock(void); // 8000F14
+extern u16 const gObject_8x8[]; // 85c39A0 8B905B0 
 
+extern void CallARM_PushToSecondaryOAM(int xMask, int yMask, const u16 *c, int d); // 8003870 / 8004388
+extern u16 gCameraX; 
+extern u16 gCameraY; 
+#define OAM0_Y(ay)         ((ay) & 0x00FF)
+#define OAM1_X(ax)         ((ax) & 0x01FF)
+int UnitHasDroppableItem(struct Unit* unit) { 
+	if (UNIT_FACTION(unit) != FACTION_RED) { return false; } 
+	return (unit->state & US_DROP_ITEM); 
+} 
+inline s8 IsItemStealableSimple(int item) {
+    return (GetItemData(item&0xFF)->weaponType == 9);
+}
+extern int IsItemStealable(int item); // 8016D34 8016D38
+int UnitHasStealableItem(struct Unit* unit) { 
+	if (UNIT_FACTION(unit) != FACTION_RED) { return false; } 
+	for (int i = 0; i < 5; ++i) { 
+		#ifdef FE8 
+		if (IsItemStealableSimple(unit->items[i])) { return true; } 
+		#else 
+		if (IsItemStealable(unit->items[i])) { return true; } 
+		#endif 
+	} 
+	return false; 
+} 
+int MaybeDisplayStealOrDropIcon(struct Unit* unit) { 
+	if ((GetGameClock() & 0x1F) >= 20) { return false; } 
+	if (!UNIT_IS_VALID(unit)) { return false; } 
+
+	int x = unit->xPos; 
+	int y = unit->yPos; 
+	x = x * 16 - gCameraX;
+	y = y * 16 - gCameraY;
+	if (x < -16 || x > 240) {
+		return false;
+	}
+
+	if (y < -16 || y > 160) {
+		return false;
+	}
+	if (UnitHasDroppableItem(unit)) { 
+	CallARM_PushToSecondaryOAM(OAM1_X(0x200+x + 1), OAM0_Y(0x100+y + 7), gObject_8x8, 0x869); // 0x869 priority 2 tile 0x69 
+	} 
+	else if (UnitHasStealableItem(unit)) { 
+	CallARM_PushToSecondaryOAM(OAM1_X(0x200+x + 1), OAM0_Y(0x100+y + 7), gObject_8x8, 0x865); 
+	} 
+	#ifdef FE6
+	// add boss icon to fe6 	
+	if (UNIT_CATTRIBUTES(unit) & CA_BOSS) { 
+		CallARM_PushToSecondaryOAM(OAM1_X(0x200+x + 9), OAM0_Y(0x100+y + 7), gObject_8x8, 0x850); // drop 0x69 
+	} 
+	#endif 
+	return true; 
+} 
 extern void RandColours(int bank, int index, int amount, u8 portraitId); 
 struct FaceVramEntry
 {
@@ -326,98 +881,268 @@ int GetAdjustedPortraitId(struct Unit* unit) {
 } 
  
 extern int NeverRandomizeColours; 
+extern int PortraitColoursPastThisAreNotSkin; 
 int ShouldRandomizeColours(void) { 
 	if (NeverRandomizeColours) { return false; } 
-	if (!RandBitflags->colours) { return false; } 
-	return true; 
+	if (RandBitflags->colours) { return true; } 
+	return false; 
  
 }  
+extern u16 gPaletteBuffer[];
 extern struct Unit gBattleActorUnit; 
 extern struct Unit gBattleTargetUnit; 
+int GetRNByID(int id);
+extern bool FadeExists(void); //80145d0  8013EB8
+void AdjustNonSkinColours(int bank, int id, int AlwaysRandomizePastThisColour, int NeverRandomizeBeforeThisColour, int fading) { 
+	id = GetRNByID(id); 
+	int r, g, b, col; 
+	u16* buffer = &gPaletteBuffer[(bank * 16)];
+	for (int i = 0; i < 16; i++) { 
+		if (i < NeverRandomizeBeforeThisColour) { i = NeverRandomizeBeforeThisColour; } 
+		col = buffer[i]; 
+		r = col & (0x1F); 
+		g = (col & (0x1F << 5)) >> 5; 
+		b = (col & (0x1F << 10)) >> 10; 
+		if (i < AlwaysRandomizePastThisColour) { 
+			if ((r >= g) && (g >= b)) { // yellowish/brownish (skin colours) 
+				if (((r - g) < 14) && ((g - b) < 25)) { // no extreme differences 
+					if (fading) { continue; } 
+					else if (r > 17) { // r > g > b 
+						if ((r+g) > 36) { 
+							continue; } 
+					}
+				} 
+			}
+		} 
+		RandColours(bank, i, 1, id);
+	} 
+	//asm("mov r11, r11");
+} 
+
+extern struct ProcCmd const ProcScr_PrepUnitScreen[]; // 0x8A18E8C bgp 2 8CC4854 fe6 8678E38
+extern struct ProcCmd const ProcScr_PrepItemScreen[]; // 0x8A189A4  bgp 3 8CC4448
+extern struct ProcCmd const gProcScr_SupportScreen[]; // 0x8A1975C  bgp 2
+struct PrepItemScreenProc {
+    /* 00 */ PROC_HEADER;
+    /* 29 */ u8 unk_29;
+    /* 2A */ u8 hoverUnitIdx;
+    /* 2B */ u8 selectedUnitIdx;
+    /* 2c */ u8 id;
+	u8 pad1; 
+	u8 pad2; 
+	u8 pad3; 
+	u8 fe6ID; // 0x30 
+	u8 fe6_supportID; // 0x31
+	int pad4; // 0x34 
+	int pad5; // 0x38 
+	int pad6; // 0x3c 
+	int pad7; // 0x40 
+	int pad8; // 0x44 
+	struct Unit* unit; // 0x48 
+}; 
+struct SupportScreenProc {
+    /* 00 */ PROC_HEADER;
+
+    /* 2C */ int unk_2c;
+    /* 30 */ int unk_30;
+    /* 34 */ int unk_34;
+    /* 38 */ int curIndex;
+    /* 3C */ int unk_3c;
+    /* 40 */ s8 unk_40; // possibly direction (up or down)
+    /* 41 */ u8 unk_41; // possibly number of positions to move up or down
+    /* 42 */ s8 fromPrepScreen; // true if from prep screen; false if from title screen
+    /* 43 */ s8 helpTextActive;
+};
+#ifndef FE6 
+struct Unit* GetUnitFromPrepList(int index); // fe7 808DD18
+#else 
+struct PrepUnitList {
+struct Unit *units[0x40];
+int max_num;        /* A counter maybe related to the amount of units in team */
+int latest_pid;     /* Last unit char-id when you leave the prep-unit-screen */
+};
+extern struct PrepUnitList gPrepUnitList; 
+struct Unit *GetUnitFromPrepList(int index)
+{
+    return gPrepUnitList.units[index]; // 200CC38
+}	
+#endif 
+extern struct ProcCmd const ProcScr_PalFade[]; // 85C4D7C 8B92914
+extern struct ProcCmd const ProcScr_FadeCore[]; // 85C4E14 8B929AC
+extern struct ProcCmd const ProcScr_BmFadeIN[]; // 8679008 CE4C50 8a20da4
+extern struct ProcCmd const ProcScr_BmFadeOUT[]; // 8679028 CE4C80 8A20DCC
+
+int AnyFadeExists(void) { 
+	if (FadeExists()) return true; 
+	if (Proc_Find(ProcScr_FadeCore)) return true; 
+	if (Proc_Find(ProcScr_PalFade)) return true; 
+	if (Proc_Find(ProcScr_BmFadeIN)) return true; 
+	if (Proc_Find(ProcScr_BmFadeOUT)) return true; 
+
+	return false; 
+}
+void PortraitAdjustNonSkinColours(int bank, int id, int AlwaysRandomizePastThisColour, int NeverRandomizeBeforeThisColour, int fading, int classCard) { 
+	if ((AlwaysRandomizePastThisColour) && (!NeverRandomizeBeforeThisColour)) { 
+	if (gPaletteBuffer[(bank * 16) + 1]  >= 0x6000) { NeverRandomizeBeforeThisColour = 5; } 
+	}
+	if (classCard) { AlwaysRandomizePastThisColour = 99; NeverRandomizeBeforeThisColour = 0; } 
+	AdjustNonSkinColours(bank, id, AlwaysRandomizePastThisColour, NeverRandomizeBeforeThisColour, fading); 
+}
+	
+extern u8 gVision; 
 int MaybeRandomizeColours(void) { 
+	if (RandBitflags->fog == 1) { gVision = 0; } 
+	if (RandBitflags->fog == 2) { gVision = 3; } 
+	
 	if (!ShouldRandomizeColours()) { return false; } 
 	int result = false; //sizeof(struct BattleUnit);  
+	int fading = AnyFadeExists();
+	
+
+	
 	//struct BattleUnit bunit; 
 	//result += bunit.hasItemEffectTarget; 
 	struct Unit* unit = NULL; 
-	if (Proc_Find(gProcScr_StatScreen)) { // stat screen portrait 
+	int classCard = true; 
+	int id = 0; 
+	int palID = 0; 
+	if (Proc_Find(gProcScr_StatScreen)) { // stat screen portrait  
 		unit = gStatScreen.unit; 
 		if (unit) { 
+			if (unit->pCharacterData->portraitId) { classCard = false; } 
 			#ifndef FE8 
-			RandColours(13, 6, 9, GetAdjustedPortraitId(unit)); 
+			PortraitAdjustNonSkinColours(13, GetAdjustedPortraitId(unit), PortraitColoursPastThisAreNotSkin, 0, fading, classCard); 
 			#else 
-			RandColours(11, 6, 9, GetAdjustedPortraitId(unit)); 
+			PortraitAdjustNonSkinColours(11, GetAdjustedPortraitId(unit), PortraitColoursPastThisAreNotSkin, 0, fading, classCard); 
 			#endif 
-			result = true;
+			return true; // so we don't alter prep palettes during stat screen 
 		}
 	}
 	struct PlayerInterfaceProc* proc = Proc_Find((struct ProcCmd*)gProcScr_UnitDisplay_MinimugBox);
 	if (proc) { 
 		unit = GetUnit(gBmMapUnit[gCursorY][gCursorX]); 
-		// for the frame we're moving off of the unit, use prev position for palette 
-		//if (proc->unk_55) { unit = GetUnit(gBmMapUnit[proc->yCursor][proc->xCursor]); } 
-		//
 		#ifdef FE7 
 		if (!unit) { unit = GetUnit(gBmMapUnit[proc->yCursorPrev][proc->xCursorPrev]); } 
 		#endif 
 		#ifdef FE8 
-		if (proc->unk_55) { unit = GetUnit(gBmMapUnit[proc->yCursorPrev][proc->xCursorPrev]); } 
+		//if (proc->unk_55) { unit = GetUnit(gBmMapUnit[proc->yCursorPrev][proc->xCursorPrev]); } 
 		if (proc->isRetracting) { unit = GetUnit(gBmMapUnit[proc->yCursorPrev][proc->xCursorPrev]); } 
 		#endif 
+		if (gActiveUnit->state & US_HIDDEN) { unit = gActiveUnit; } // for frame we select unit 
 		if (unit) { 
-			RandColours(4, 6, 9, GetAdjustedPortraitId(unit)); 
+			if (unit->pCharacterData->portraitId) { classCard = false; } 
+			PortraitAdjustNonSkinColours(4, GetAdjustedPortraitId(unit), PortraitColoursPastThisAreNotSkin, 0, fading, classCard); 
 			result = true;
 		} 
 		
 	}
-	//return result; 
-	if (result) { return result; } 
+	//
+	
 	// faces 
 	for (int i = 0; i < 4; ++i) {
 		if (gFaces[i] == NULL) {
 			continue;
 		}
 		#ifdef FE6 
-		RandColours(sFaceConfig[i].paletteId+16, 6, 9, gFaces[i]->faceSlot); 
+		if ((gFaces[i]->faceSlot < 0x99) || (gFaces[i]->faceSlot > 0xB8)) { classCard = false; } 
+		#endif 
+		#ifdef FE7 
+		if ((gFaces[i]->faceId < 0xBE) || (gFaces[i]->faceId > 0xDE)) { classCard = false; } 
+		#endif 
+		#ifdef FE8 
+		if (gFaces[i]->faceId < 0x72) { classCard = false; } 
+		#endif 
+		
+		
+		#ifdef FE6 
+		PortraitAdjustNonSkinColours(sFaceConfig[i].paletteId+16, gFaces[i]->faceSlot, PortraitColoursPastThisAreNotSkin, 0, fading, classCard); 
 		#else 
-		RandColours(sFaceConfig[i].paletteId+16, 6, 9, gFaces[i]->faceId); 
+		PortraitAdjustNonSkinColours(sFaceConfig[i].paletteId+16, gFaces[i]->faceId, PortraitColoursPastThisAreNotSkin, 0, fading, classCard); 
 		#endif 
 		result = true;
-	}   
+	}  
 	
-	//if (RandBitflags->colours == 1) { // if 3, it's portraits only. 2 is janky 
-	if (RandBitflags->colours != 3) { // if 3, it's portraits only. 2 is janky 
+	struct PrepItemScreenProc* proc_2 = Proc_Find((struct ProcCmd*)ProcScr_PrepUnitScreen);
+	if (proc_2) { 
+		palID = 2; 
+		#ifdef FE6 
+		id = proc_2->fe6ID;
+		//if (id == 0xFF) { id = proc_2->fe6ID; } 
+		
+		if (*TILEMAP_LOCATED(gBG1TilemapBuffer, 1, 0) == 0x1001) { palID = 3; id = proc_2->fe6_supportID; } 
+		//else if ((int)proc_2->proc_scrCur == 0x8678E98) { palID = 3; } 
+		#else 
+		id = proc_2->id; 
+		#endif 
+		unit = GetUnitFromPrepList(id); 
+		#ifdef FE6 
+		if (palID == 3) { unit = proc_2->unit; } 
+		#endif 
+		
+		if (unit) { 
+			if (unit->pCharacterData->portraitId) { classCard = false; } 
+			PortraitAdjustNonSkinColours(palID, GetAdjustedPortraitId(unit), PortraitColoursPastThisAreNotSkin, 0, fading, classCard); 
+			result = true;
+		} 
+	}
+	#ifndef FE6 
+	struct PrepItemScreenProc* proc_3 = Proc_Find((struct ProcCmd*)ProcScr_PrepItemScreen);
+	if (proc_3) { 
+		#ifdef FE8 
+		palID = 3;
+		#endif 
+		#ifdef FE7 
+		palID = 2; 
+		#endif 
+		#ifndef FE8 
+		id = proc_3->hoverUnitIdx; 
+		if (id == 0xFF) { id = proc_3->unk_29; } 
+		#endif 
+		
+		#ifdef FE8 
+		id = proc_3->selectedUnitIdx; 
+		if (id == 0xFF) { id = proc_3->hoverUnitIdx; } 
+		#endif 
+		unit = GetUnitFromPrepList(id); 
+		if (unit) { 
+			if (unit->pCharacterData->portraitId) { classCard = false; } 
+			PortraitAdjustNonSkinColours(palID, GetAdjustedPortraitId(unit), PortraitColoursPastThisAreNotSkin, 0, fading, classCard); 
+			result = true;
+		} 
+	}
+	#endif 
+	#ifdef FE8 
+	struct SupportScreenProc* proc_4 = Proc_Find((struct ProcCmd*)gProcScr_SupportScreen);
+	if (proc_4) { 
+		unit = GetUnitFromPrepList(proc_4->curIndex); 
+		if (unit) { 
+			if (unit->pCharacterData->portraitId) { classCard = false; } 
+			PortraitAdjustNonSkinColours(2, GetAdjustedPortraitId(unit), PortraitColoursPastThisAreNotSkin, 0, fading, classCard); 
+			result = true;
+		} 
+	}
+	#endif 
+
+
+	// battle animations 
+	if (RandBitflags->colours == 1) { // if 3, it's portraits only. 2 is janky 
+	//if (RandBitflags->colours != 3) { // if 3, it's portraits only. 2 is janky 
 		if (Proc_Find(gProc_ekrBattleDeamon)) { // battle anim 
-			#ifdef FE6 
-			if (!BattleAttackerSideBool) { 
-				RandColours(9+16, 6, 10, GetAdjustedPortraitId(&gBattleTargetUnit)); 
-				RandColours(9+16, 0, 6, GetAdjustedPortraitId(&gBattleTargetUnit)); 
-				RandColours(7+16, 6, 10, GetAdjustedPortraitId(&gBattleActorUnit)); 
-				RandColours(7+16, 0, 6, GetAdjustedPortraitId(&gBattleActorUnit)); 
+			unit = &gBattleActorUnit; 
+			if (BattleAttackerSideBool) { // swap units 
+				unit = &gBattleTargetUnit; 
 			}
-			else { 
-				RandColours(9+16, 6, 10, GetAdjustedPortraitId(&gBattleActorUnit)); 
-				RandColours(9+16, 0, 6, GetAdjustedPortraitId(&gBattleActorUnit)); 
-				RandColours(7+16, 6, 10, GetAdjustedPortraitId(&gBattleTargetUnit)); 
-				RandColours(7+16, 0, 6, GetAdjustedPortraitId(&gBattleTargetUnit)); 
+			int offset = 0; 
+			if (gPaletteBuffer[((7+16) * 16) + 1]  >= 0x7BBE) { offset = 5; } 
+			// if col index 1 is white, skip first few colours in battle anim 
+			AdjustNonSkinColours(7+16, GetAdjustedPortraitId(unit), 99, offset, fading); 
+			unit = &gBattleTargetUnit; 
+			if (BattleAttackerSideBool) { // swap units 
+				unit = &gBattleActorUnit; 
 			}
-			
-			#else 
-		
-		
-			if (!BattleAttackerSideBool) { 
-				RandColours(9+16, 6, 10, GetAdjustedPortraitId(&gBattleTarget.unit)); 
-				RandColours(9+16, 0, 6, GetAdjustedPortraitId(&gBattleTarget.unit)); 
-				RandColours(7+16, 6, 10, GetAdjustedPortraitId(&gBattleActor.unit)); 
-				RandColours(7+16, 0, 6, GetAdjustedPortraitId(&gBattleActor.unit)); 
-			}
-			else { 
-				RandColours(9+16, 6, 10, GetAdjustedPortraitId(&gBattleActor.unit)); 
-				RandColours(9+16, 0, 6, GetAdjustedPortraitId(&gBattleActor.unit)); 
-				RandColours(7+16, 6, 10, GetAdjustedPortraitId(&gBattleTarget.unit)); 
-				RandColours(7+16, 0, 6, GetAdjustedPortraitId(&gBattleTarget.unit)); 
-			}
-			#endif 
+			offset = 0; 
+			if (gPaletteBuffer[((9+16) * 16) + 1]  >= 0x7BBE) { offset = 5; } 
+			AdjustNonSkinColours(9+16, GetAdjustedPortraitId(unit), 99, offset, fading); 
 
 			result = true;
 		}
@@ -429,28 +1154,51 @@ inline int IsClassInvalid(int i) {
 	return ClassExceptions[i].NeverChangeInto;
 } 
 int ShouldRandomizeGrowth(struct Unit* unit) { 
-	if ((!RandBitflags->growth) || (RandBitflags->growth == 4)) { return false; } 
+	if ((!RandBitflags->growth) && (!RandBitflags->grow50)) { return false; } 
 	return !CharExceptions[unit->pCharacterData->number].NeverChangeFrom; 
 }
 int ShouldRandomizeStatCaps(struct Unit* unit) { 
 	if (!RandBitflags->caps) { return false; } 
 	return !CharExceptions[unit->pCharacterData->number].NeverChangeFrom; 
 }
+extern const struct ProcCmd gProcScr_ArenaUiMain[]; // fe6 86911AC fe7 8CE729C fe8 8A394DC
 int ShouldRandomizeClass(struct Unit* unit) { 
 	int config = RandBitflags->class; 
 	if (!config) { return false; } 
 	if ((config == 3) && (UNIT_FACTION(unit) != FACTION_RED)) {  return false; } 
 	if ((config == 2) && (UNIT_FACTION(unit) == FACTION_RED)) {  return false; } 
+	//if (Proc_Find(gProcScr_ArenaUiMain)) { return false; } 
 	return !CharExceptions[unit->pCharacterData->number].NeverChangeFrom; 
 } 
+int IsClassOrRecruitmentRandomized(struct Unit* unit) { 
+	int result = ShouldRandomizeClass(unit); 
+	result |= ShouldRandomizeRecruitmentForUnitID(unit->pCharacterData->number); 
+	return result; 
+} 
+
+
 int IsAnythingRandomized(void) { 
-	return RandBitflags->base | ((RandBitflags->growth != 4) && (RandBitflags->growth)) | RandBitflags->caps | RandBitflags->itemStats | RandBitflags->class | RandBitflags->shopItems | RandBitflags->foundItems; 
+	return RandBitflags->base | RecruitValues->recruitment | ((RandBitflags->growth != 4) && (RandBitflags->growth)) | RandBitflags->caps | RandBitflags->itemStats | RandBitflags->class | RandBitflags->shopItems | RandBitflags->foundItems; 
 } 
 
 u32 GetSeed(void) { 
 	return RandValues->seed; 
 } 
 
+
+void MaybeChangeAi2(void) { 
+	if (IsAnythingRandomized()) { 
+		if (gActiveUnit->ai2 == 3) { 
+			if (UNIT_CATTRIBUTES(gActiveUnit) & CA_BOSS) { return; } 
+			if (gTurn > 10) { 
+				int noise[4] = { gActiveUnit->pCharacterData->number, gActiveUnit->pClassData->number, 0, 0 }; 
+				if (HashByte_Ch(gTurn, 100, noise, gTurn) < ((gTurn) * 2)) { 
+					gActiveUnit->ai2 = 0; 
+				}
+			} 
+		} 
+	}
+} 
 
 int GetMaxItems(void) {  
 	if (MaxItems_Link) { return MaxItems_Link; } 
@@ -476,6 +1224,67 @@ int GetMaxClasses(void) {
 } 
 
 
+
+int NextSeededRN_Simple(u32 rn) {
+    // This generates a pseudorandom string of 32 bits
+	u32 rn0 = rn & 0xFFFF; 
+	u32 rn1 = rn >> 16; 
+    rn = (rn1 << 11) + (rn0 >> 5) + (rn0 << 16);
+
+    // Shift state[2] one bit
+    rn0 *= 2;
+
+	
+    // "carry" the top bit of state[1] to state[0]
+    if (rn1 & 0x8000)
+        rn0++;
+
+
+    rn ^= rn0;
+    return rn;
+}
+
+
+u32 InitSeededRN_Simple(int seed, u32 currentRN) {
+    // This table is a collection of 8 possible initial rn state
+    // 3 entries will be picked based of which "seed" was given
+
+    u16 initTable[8] = {
+        0xA36E,
+        0x924E,
+        0xB784,
+        0x4F67,
+        0x8092,
+        0x592D,
+        0x8E70,
+        0xA794
+    };
+
+    int mod = Mod(seed, 7);
+
+    currentRN = initTable[(mod++ & 7)];
+    currentRN |= initTable[(mod++ & 7)] << 16;
+
+    if (Mod(seed, 5) > 0) { 
+        for (mod = Mod(seed,  5); mod != 0; mod--) { 
+            currentRN = NextSeededRN_Simple(currentRN);
+		}
+	}
+		
+	return currentRN;
+}
+
+u32 GetNthRN_Simple(int n, int seed, u32 currentRN) { 
+	n = (n ^ (n >> 4)) & 0xF; 
+	if (!currentRN) { 
+		currentRN = InitSeededRN_Simple(seed, currentRN); 
+	} 
+	for (int i = 0; i < n; i++) { 
+		currentRN = NextSeededRN_Simple(currentRN); 
+	}
+	return currentRN; 
+} 
+
 int NextSeededRN(u16* currentRN) {
     // This generates a pseudorandom string of 16 bits
     // In other words, a pseudorandom integer that can range from 0 to 65535
@@ -498,6 +1307,7 @@ int NextSeededRN(u16* currentRN) {
 
     return rn;
 }
+
 
 void InitSeededRN(int seed, u16* currentRN) {
     // This table is a collection of 8 possible initial rn state
@@ -536,7 +1346,7 @@ u16 GetNthRN(int n, int seed) {
 	return result; 
 } 
 
-extern unsigned GetGameClock(void); // 8000F14
+
 int GetInitialSeed(int rate) { 
 	int result = RandValues->seed;
 	int clock = GetGameClock()>>rate; 
@@ -548,7 +1358,41 @@ int GetInitialSeed(int rate) {
 	return result; 
 } 
 
+
+u16 HashByte_Class(int n, int max, u8 noise[], int offset) {
+	//asm("mov r11, r11"); 
+	int c; 
+	while ((c = *noise++)) { 
+	n = c + (n << 6) + (n << 16) - n;
+	} 
+	n = (RandValues->seed&0xFF) + (n << 6) + (n << 16) - n;
+	n = ((RandValues->seed&0xFF00) >> 8) + (n << 6) + (n << 16) - n;	
+	n = ((offset&0xFF)) + (n << 6) + (n << 16) - n;	
+	return Mod((n & 0x2FFFFFFF), max);
+}
+
 u16 HashByte_Global(int number, int max, int noise[], int offset) {
+	//asm("mov r11, r11"); 
+	offset += noise[0] + noise[1] + noise[2] + noise[3] + number; 
+	//offset &= 0xFF; // GetNthRN_Simple does this anyway 
+	int currentRN = 0; 
+	currentRN = GetNthRN_Simple(offset, RandValues->seed, currentRN); 
+	currentRN = (RandValues->seed&0xFF) + (currentRN << 6) + (currentRN << 16) - currentRN;
+	currentRN = ((RandValues->seed&0xFF00) >> 8) + (currentRN << 6) + (currentRN << 16) - currentRN;
+	//currentRN = ((RandValues->seed&0xFF0000) >> 16) + (currentRN << 6) + (currentRN << 16) - currentRN;
+	currentRN = ((currentRN << 5) + currentRN) ^ RandValues->seed; 
+	currentRN = ((currentRN << 5) + currentRN) ^ number; 
+	for (int c = 0; c < 4; ++c) { 
+		for (int i = 0; i < (noise[c] & 0xF); ++i) { 
+			currentRN = NextSeededRN_Simple(currentRN); 
+		} 
+	} 
+
+	//asm("mov r11, r11"); 
+	return Mod((currentRN & 0x2FFFFFFF), max);
+}
+
+u16 HashByte_GlobalOld(int number, int max, int noise[], int offset) {
 	if (max==0) return 0;
 	offset += noise[0]*3; 
 	offset += noise[1]*5; 
@@ -571,7 +1415,7 @@ u16 HashByte_Global(int number, int max, int noise[], int offset) {
 	hash = GetNthRN(offset + 1, hash); 
 	
 	return Mod((hash & 0x2FFFFFFF), max);
-};
+}; 
 
 u16 HashByte_Ch(int number, int max, int noise[], int offset){
 	int i = 0; 
@@ -584,16 +1428,21 @@ u16 HashByte_Ch(int number, int max, int noise[], int offset){
 s16 HashPercent(int number, int noise[], int offset, int global, int earlygamePromo){
 	if (number < 0) number = 0;
 	int variation = (RandValues->variance)*5;
+	if (earlygamePromo == 3) { // 2/3rds
+		variation += variation; 
+		variation = variation / 3; 
+		
+	} 
 	int percentage = 0; 
 	if (global) { 
 		percentage = HashByte_Global(number, variation*2, noise, offset); //rn up to 150 e.g. 125
 	} 
 	else { percentage = HashByte_Ch(number, variation*2, noise, offset); }  //rn up to 150 e.g. 125
 	percentage += (100-variation); // 125 + 25 = 150
-	if (earlygamePromo == 1) { if (percentage > 125) { percentage = percentage / 2; } }
-	if (earlygamePromo == 2) { if (percentage > 150) { percentage = percentage / 2; } }
-	int ret = (percentage * number) / 100; //1.5 * 120 (we want to negate this)
-	if (ret > 127) ret = (200 - percentage) * number / 100;
+	if (earlygamePromo == 1) { if (percentage > 125) { percentage = percentage >> 1; } }
+	if (earlygamePromo == 2) { if (percentage > 150) { percentage = percentage >> 1; } }
+	int ret = Div1((percentage * number), 100); //1.5 * 120 (we want to negate this)
+	if (ret > 127) ret = Div1((200 - percentage) * number, 100);
 	if (ret < 0) ret = 0;
 	return ret;
 };
@@ -604,6 +1453,10 @@ s16 HashByPercent_Ch(int number, int noise[], int offset, int earlygamePromo){
 
 s16 HashByPercent(int number, int noise[], int offset){
 	return HashPercent(number, noise, offset, true, false);
+};
+
+s16 HashByTwoThirdsPercent(int number, int noise[], int offset){
+	return HashPercent(number, noise, offset, true, 3);
 };
 
 int GetRNByID(int id) { 
@@ -618,12 +1471,12 @@ int GetRNByID(int id) {
 s16 HashMight(int number, int noise[]) { 
 	if (!RandBitflags->itemStats) { return number; } 
 	if (number == 255) { return number; } // eclipse 
-	return HashByPercent(number, noise, 0)+2; 
+	return HashByTwoThirdsPercent(number, noise, 0)+2; 
 } 
 extern int MaxWeaponHitrate; 
 s16 HashHit(int number, int noise[]) { 
 	if (!RandBitflags->itemStats) { return number; } 
-	number = HashByPercent(number, noise, 0);
+	number = HashByTwoThirdsPercent(number, noise, 0);
 	if (number < 50) number += number + (noise[0] & 0x1F) + 30; 
 	if (number > MaxWeaponHitrate) { number = MaxWeaponHitrate; } 
 	return number; 
@@ -635,7 +1488,7 @@ s16 HashCrit(int number, int noise[]) {
 } 
 s16 HashWeight(int number, int noise[]) { 
 	if (!RandBitflags->itemStats) { return number; } 
-	return HashByPercent(number, noise, 0); 
+	return HashByTwoThirdsPercent(number, noise, 0); 
 } 
 
 inline int IsUnitAlliedOrPlayable(struct Unit* unit) { 
@@ -692,7 +1545,7 @@ int GetItemWeight(int item) {
 
 //extern bool UnitAddItem(struct Unit* unit, int item);
 
-
+extern int IncludeMonstersWithoutWEXP; 
 u8* BuildAvailableClassList(u8 list[], int promotedBitflag, int allegiance) {
 	
 	
@@ -723,7 +1576,13 @@ u8* BuildAvailableClassList(u8 list[], int promotedBitflag, int allegiance) {
 		wexp |= table->baseRanks[5]; 
 		wexp |= table->baseRanks[6]; 
 		wexp |= table->baseRanks[7]; 
-		if (!wexp) { 
+		
+		if (IncludeMonstersWithoutWEXP) { 
+			if ((!wexp) && (!(attr & CA_LOCK_3))) { // Dragons or Monster depending of game
+				continue; 
+			}
+		} 
+		else if (!wexp) { 
 			continue; 
 		} 
 		// if class has any base wexp, it's good 
@@ -733,17 +1592,34 @@ u8* BuildAvailableClassList(u8 list[], int promotedBitflag, int allegiance) {
 	return list; 
 } 
 
+// now replaced with randclass2 
 int RandClass(int id, int noise[], struct Unit* unit) { 
 	if (!ShouldRandomizeClass(unit)) { return id; } 
 	if (ClassExceptions[id].NeverChangeFrom) { return id; } 
 	int allegiance = (unit->index)>>6;
 	//if (allegiance && (id == 0x3C)) { return id; } 
-	u8 list[255]; 
+	u8 list[127]; 
 	list[0] = 99; 
 	int promotedBitflag = (unit->pCharacterData->attributes | GetClassData(id)->attributes)& CA_PROMOTED;
 	 
 	BuildAvailableClassList(list, promotedBitflag, allegiance); 
 	id = HashByte_Ch(id, list[0]+1, noise, 0);
+	if (!id) { id = 1; } // never 0  
+	if (!list[id]) { return 1; } // never 0 
+	return list[id]; 
+} 
+
+int RandClass2(int id, u8 noise[], struct Unit* unit) {  
+	if (!ShouldRandomizeClass(unit)) { return id; } 
+	if (ClassExceptions[id].NeverChangeFrom) { return id; } 
+	int allegiance = (unit->index)>>6;
+	//if (allegiance && (id == 0x3C)) { return id; } 
+	u8 list[127]; 
+	list[0] = 99; 
+	int promotedBitflag = (unit->pCharacterData->attributes | GetClassData(id)->attributes)& CA_PROMOTED;
+	 
+	BuildAvailableClassList(list, promotedBitflag, allegiance); 
+	id = HashByte_Class(id, list[0]+1, noise, 0);
 	if (!id) { id = 1; } // never 0  
 	if (!list[id]) { return 1; } // never 0 
 	return list[id]; 
@@ -781,7 +1657,7 @@ u8* BuildAvailableWeaponList(u8 list[], struct Unit* unit) {
 	// iterate through all items 
 	struct ItemData* table; 
 	int rank, type, attr, badAttr;
-	
+	int allowStatBoosts = false; 
 	#ifdef FE6 
 	badAttr = IA_LOCK_1|IA_LOCK_2|IA_LOCK_3|IA_LOCK_4|IA_UNCOUNTERABLE; // must be not an unusable locked weapon 
 	#endif 
@@ -789,7 +1665,7 @@ u8* BuildAvailableWeaponList(u8 list[], struct Unit* unit) {
 	badAttr = IA_LOCK_1|IA_LOCK_2|IA_LOCK_3|IA_LOCK_4|IA_LOCK_5|IA_LOCK_6|IA_LOCK_7|IA_UNCOUNTERABLE; 
 	#endif 
 	attr = unit->pCharacterData->attributes | unit->pClassData->attributes; 
-	if ((IsUnitAlliedOrPlayable(unit)) || (UNIT_CATTRIBUTES(unit) & CA_BOSS)) { // only player units / bosses can start with wep locked weps 
+	if ((IsUnitAlliedOrPlayable(unit)) || (attr & CA_BOSS)) { // only player units / bosses can start with wep locked weps 
 		if (attr & CA_LOCK_1) { badAttr &= ~IA_LOCK_1; } // "wep lock 1" 
 		if (attr & CA_LOCK_2) { badAttr &= ~IA_LOCK_2; } // myrm 
 		if (attr & CA_LOCK_3) { badAttr &= ~IA_LOCK_3; } // manakete 
@@ -799,7 +1675,10 @@ u8* BuildAvailableWeaponList(u8 list[], struct Unit* unit) {
 		if (attr & CA_LOCK_6) { badAttr &= ~IA_LOCK_6; } // lyn 
 		if (attr & CA_LOCK_7) { badAttr &= ~IA_LOCK_7; } // athos 
 		#endif 
+		allowStatBoosts = true; 
 	} 
+	if (IncludeMonstersWithoutWEXP && (attr & CA_LOCK_3)) { badAttr &= ~IA_LOCK_3; } // manakete 
+	
 	u8 ranks[8]; 
 	ranks[0] = unit->ranks[0]; 
 	ranks[1] = unit->ranks[1]; 
@@ -810,14 +1689,19 @@ u8* BuildAvailableWeaponList(u8 list[], struct Unit* unit) {
 	ranks[6] = unit->ranks[6]; 
 	ranks[7] = unit->ranks[7]; 
 	int doWeHaveNonStaff = ranks[0] | ranks[1] | ranks[2] | ranks[3] | ranks[5] | ranks[6] | ranks[7];
+	if (IncludeMonstersWithoutWEXP && (attr & CA_LOCK_3)) { 
+		doWeHaveNonStaff = 1; 
+	} 
+	// never give monster weapons to units that have wexp 
+	//else if (doWeHaveNonStaff && (attr & CA_LOCK_3)){ 
+	else if (doWeHaveNonStaff){ 
+		badAttr |= IA_LOCK_3;
+	}
+	
 	if (doWeHaveNonStaff) { ranks[4] = 0; doWeHaveNonStaff = 0; } // do not include staves at first 
 	else { doWeHaveNonStaff = IA_STAFF; } 
 	
 	list[0] = 0; // count  
-	
-	#ifdef FE8 
-	//if (WepLockExInstalled) { badAttr = IA_UNCOUNTERABLE; } 
-	#endif 
 	
 	for (int i = 1; i <= GetMaxItems(); i++) { 
 		if (ItemExceptions[i].NeverChangeInto) { continue; } 
@@ -840,10 +1724,19 @@ u8* BuildAvailableWeaponList(u8 list[], struct Unit* unit) {
 		#endif 
 			rank = 251; 
 		} 
-		if ((type <= 7) && (!rank)) { rank = 1; } // PRFs require at least 1 wexp in that type 
+		if (type <= 7) { if (!rank) { rank = 1; } } // PRFs require at least 1 wexp in that type 
+		else if (rank) { rank = 0; } // rings / monster weapons etc. should never require WEXP 
+		
+		#ifdef FE6 
+		if ((table->weaponEffectId == 4) && (rank < 101)) { rank = 101; } // devil weapons are considered C rank
+		#else 
+		if ((table->weaponEffectId == 4) && (rank < 101)) { rank = 71; } // devil weapons are considered C rank
+		#endif 
 		// otherwise units can get PRFs that they don't have animations for 
-		if (rank > ranks[type]) { 
-			continue; 
+		if (type <= 7) { 
+			if (rank > ranks[type]) { 
+				continue; 
+			} 
 		} 
 		
 		
@@ -853,6 +1746,7 @@ u8* BuildAvailableWeaponList(u8 list[], struct Unit* unit) {
 				continue; 
 			} 
 		} 
+		if ((!allowStatBoosts) && (table->pStatBonuses)) { continue; } 
 		#ifdef FE8 
 		if (WepLockExInstalled) { 
 			if (attr & IA_STAFF) { if (!CanUnitUseStaff(unit, i|0x100)) { continue; } } 
@@ -951,13 +1845,13 @@ u8* BuildSimilarPriceItemList(u8 list[], int item, int noWeapons, int costReq) {
 	// no price weps: poison, legendary, ballista, dragonstone, monster weps 
 	int originalPrice = GetItemData(item)->costPerUse; 
 	int minPrice = originalPrice; 
-	originalPrice += 200 + (((originalPrice * RandValues->variance) / 100) * 5);
+	originalPrice += 200 + (Div1((originalPrice * RandValues->variance), 100) * 5);
 	int uses = GetItemData(item)->maxUses;
 	if (!uses) { uses = 1; } 
 	originalPrice = originalPrice * uses; 
 	minPrice = minPrice * uses; 
 	if (minPrice < 2000) { minPrice = 0; } 
-	else { minPrice = minPrice / 4; if (minPrice > 4000) { minPrice = 4000; } } 
+	else { minPrice = minPrice >> 2; if (minPrice > 4000) { minPrice = 4000; } } 
 	// up to 500% price + 200 
 	list[0] = 0; // count 
 	for (int i = 1; i <= GetMaxItems(); i++) { 
@@ -1025,14 +1919,14 @@ int RandRareItem(int item, int noise[], int offset, int costReq, int varyByCh) {
 	return MakeNewItem(item); 
 } 
 
-int RandNewItem(int item, int noise[], int offset, int costReq, int varyByCh) { 
+int RandNewItem(int item, int noise[], int offset, int costReq, int varyByCh, int noWeapons) { 
 	if (!item) { return item; } 
 	item &= 0xFF; 
 	if (ItemExceptions[item].NeverChangeFrom) { return MakeNewItem(item); } 
 	u8 list[255]; 
 	list[0] = 99; // so compiler doesn't assume uninitialized or whatever 
 	int c; 
-	BuildSimilarPriceItemList(list, item, false, costReq); 
+	BuildSimilarPriceItemList(list, item, noWeapons, costReq); 
 	if (list[0]) { 
 		if (varyByCh) { 
 			c = HashByte_Ch(item, list[0]+1, noise, offset); 
@@ -1050,7 +1944,7 @@ int RandNewItem(int item, int noise[], int offset, int costReq, int varyByCh) {
 int RandNewWeapon(struct Unit* unit, int item, int noise[], int offset, u8 list[]) { 
 	if (!item) { return item; } 
 	item &= 0xFF; 
-	if (!ShouldRandomizeClass(unit)) { return MakeNewItem(item); } 
+	if (!IsClassOrRecruitmentRandomized(unit)) { return MakeNewItem(item); } 
 	if (ItemExceptions[item].NeverChangeFrom) { return MakeNewItem(item); } 
 	//int wexpMask = GetValidWexpMask(unit); 
 	int c; 
@@ -1136,7 +2030,7 @@ void NewPopup_ItemGot(struct Unit *unit, u16 item, ProcPtr parent) // proc in r2
 	noise[0] = unit->xPos; 
 	noise[1] = unit->yPos; 
 	noise[2] = 0; 
-	if (RandBitflags->foundItems) { item = RandNewItem(item, noise, 0, false, true); } 
+	if (RandBitflags->foundItems) { item = RandNewItem(item, noise, 0, false, true, false); } 
 
     proc->item = item;
     proc->unit = unit;
@@ -1202,14 +2096,117 @@ void NewPopup_GoldGot(ProcPtr parent, struct Unit *unit, int value) // fe8 and f
         NewPopup_Simple(PopupScr_GoldWasStole, 0x60, 0x0, parent);
 }
 
+int AdjustGrowthForStatInflation(int growth) { 
+	int result = growth; 
+	switch (RandBitflags->caps) { 
+		case 0: { result = growth; break; } 
+		case 1: { result = growth; break; } 
+		case 2: { result = 0 * growth; break; } 
+		case 3: { result = (3 * growth) / 4; break; } 
+		case 4: { result = growth; break; } 
+		case 5: { result = ((5 * growth) / 4) + 10; break; } 
+		case 6: { result = ((6 * growth) / 4) + 20; break; } 
+	}
+	return result; 
+} 
 
+int GetGeneralStatCap(void) { 
+	int result = (-1); 
+	switch (RandBitflags->caps) { 
+		case 0: { result = (-1); break; } 
+		case 1: { result = (-1); break; } 
+		case 2: { result = 0; break; } 
+		case 3: { result = 15; break; } 
+		case 4: { result = 30; break; } 
+		case 5: { result = 45; break; } 
+		case 6: { result = 60; break; } 
+	}
+	if (result > maxStat) { result = maxStat; } 
+	return result; 
+} 
+
+int GetGlobalStatCap(void) { 
+	int result = GetGeneralStatCap(); 
+	if (result == (-1)) { result = 30; } 
+	return result; 
+}  
+
+int AdjustStatForInflatedNumbers(int stat) { 
+	int result = stat; 
+	switch (RandBitflags->caps) { 
+		case 0: { result = stat; break; } 
+		case 1: { result = stat; break; } 
+		case 2: { result = 0 * stat; break; } 
+		case 3: { result = ((3 * stat) / 4) - 2; break; } 
+		case 4: { result = stat; break; } 
+		case 5: { result = ((5 * stat) / 4) + 1; break; } 
+		case 6: { result = ((6 * stat) / 4) + 2; break; } 
+	}
+	if (result < 0) { result = 0; } 
+	return result; 
+} 
+
+int SlightlyAdjustStatForInflatedNumbers(int stat) { 
+	int result = stat; 
+	switch (RandBitflags->caps) { 
+		case 0: { result = stat; break; } 
+		case 1: { result = stat; break; } 
+		case 2: { result = 0 * stat; break; } 
+		case 3: { result = ((7 * stat) / 8) - 1; break; } 
+		case 4: { result = stat; break; } 
+		case 5: { result = ((9 * stat) / 8) + 0; break; } 
+		case 6: { result = ((10 * stat) / 8) + 1; break; } 
+	}
+	if (result < 0) { result = 0; } 
+	return result; 
+}
+
+extern void PutNumberBonus(int a, u16 *b); // 8006240
+extern void PutNumberOrBlank(u16 *a, int b, int c); // 80061E4
+void DrawStatBarGfx(
+    int tile, int bufWidth, u16* buf, int tileBase,
+    int barWidth, int progressLength, int cappedLength);
+extern u16 gUiTmScratchA[0x280];
+extern u16 gUiTmScratchC[0x240]; 
+void NewDrawStatWithBar(int num, int x, int y, int base, int total, int max)
+{
+    int diff = total - base;
+	int globalCap = GetGlobalStatCap();
+
+    PutNumberOrBlank(gUiTmScratchA + TILEMAP_INDEX(x, y),
+        (base == max) ? green : blue, base);
+
+    PutNumberBonus(diff, gUiTmScratchA + TILEMAP_INDEX(x + 1, y));
+
+    if (total > globalCap)
+    {
+        total = globalCap;
+        diff = total - base;
+    }
+
+    DrawStatBarGfx(0x401 + num*6, 6,
+        gUiTmScratchC + TILEMAP_INDEX(x - 2, y + 1),
+        TILEREF(0, 6), max * 41 / globalCap, base * 41 / globalCap, diff * 41 / globalCap);
+}
 
 s16 HashStat(int number, int noise[], int offset, int promoted) { 
 	number = HashByPercent_Ch(number, noise, offset, promoted);
 	return number; 
 } 
-
 extern int MinClassBase; 
+int RandHPStat(struct Unit* unit, int stat, int noise[], int offset, int promoted) { 
+	if (!RandBitflags->base) { return stat; } 
+	if (CharExceptions[unit->pCharacterData->number].NeverChangeFrom) { return stat; } 
+	int result = HashStat(stat, noise, offset, 3); // by 2/3rds percent 
+	if (IsUnitAlliedOrPlayable(unit)) { // if below average player, reroll once 
+		if (result < stat) { 
+			stat = HashStat(result, noise, offset+13, 3); 
+			if (stat > result) { result = stat; } 
+		}
+	}
+	result = SlightlyAdjustStatForInflatedNumbers(result); 
+	return result; 
+} 
 int RandStat(struct Unit* unit, int stat, int noise[], int offset, int promoted) { 
 	if (!RandBitflags->base) { return stat; } 
 	if (CharExceptions[unit->pCharacterData->number].NeverChangeFrom) { return stat; } 
@@ -1220,6 +2217,7 @@ int RandStat(struct Unit* unit, int stat, int noise[], int offset, int promoted)
 			if (stat > result) { result = stat; } 
 		}
 	}
+	result = SlightlyAdjustStatForInflatedNumbers(result); 
 	return result; 
 } 
 
@@ -1276,18 +2274,21 @@ int GetUnitMagGrowth(struct Unit* unit, int modifiersBool) {
 	int baseGrowth = 0;
 	int add = 0; 
 	if (modifiersBool) { add = GetGrowthModifiers(unit); } 
-	baseGrowth = MagCharTable[unit->pCharacterData->number].growth;  
+	baseGrowth = MagCharTable[GetReorderedUnitID(unit)].growth;  
+	int originalGrowth = MagCharTable[unit->pCharacterData->number].growth;  
 	if (ClassBasedGrowths) { baseGrowth = MagClassTable[unit->pClassData->number].growth;  } 
 	if (CombinedGrowths) { baseGrowth += MagClassTable[unit->pClassData->number].growth;  } 
 	if ((!ShouldRandomizeGrowth(unit)) || (!modifiersBool)) { return baseGrowth + add; } 
 	int growth = CallGet_Mag_Growth(unit); 
 	// we only need growth for the modifiers, so replace `add` with the difference 
-	if (growth != (-1)) { add = growth - baseGrowth; } 
+	if (growth != (-1)) { add = growth - originalGrowth; } 
 	growth = baseGrowth;
 	int player = (UNIT_FACTION(unit) == FACTION_BLUE); 
+	if (player && (RandBitflags->grow50 == 1)) { return 50; } // 50% growths 
 	if (player && (RandBitflags->growth == 2)) { return 0; } // 0% growths 
 	if (player && (RandBitflags->growth == 3)) { return 100; } // 100% growths 
 	if (MagClassTable[unit->pClassData->number].growth > growth) { growth = MagClassTable[unit->pClassData->number].growth;  } 
+	growth = AdjustGrowthForStatInflation(growth);
 	int noise[4] = {0, 0, 0, 0};  
 	noise[0] = unit->pCharacterData->number; 
 	int result = HashByPercent(growth, noise, 81); 
@@ -1303,17 +2304,26 @@ int GetUnitMaxMag(struct Unit* unit) {
 	int cap = 0;
 	if (StrMagInstalled) { cap = MagClassTable[unit->pClassData->number].cap; } 
 	if (!ShouldRandomizeStatCaps(unit)) { return cap; } 
-	if (RandBitflags->caps == 2) { return 30; } 
+	int max = GetGeneralStatCap(); 
+	if (max != (-1)) { return max; } 
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pClassData->number; 
 	int result = HashByPercent(cap, noise, 77); 
-	if (result < (cap / 2)) { result += HashByte_Global(cap, (cap/2), noise, 73); } 
+	if (result < (cap >> 1)) { result += HashByte_Global(cap, (cap >> 1), noise, 73); } 
 	if (result > cap) { result = cap; } 
+	if (result > GetGlobalStatCap()) { result = GetGlobalStatCap(); } 
 	return result;  
 } 
 
 int GetUnitBaseMag(struct Unit* unit) { 
-	return MagClassTable[unit->pClassData->number].base + MagCharTable[unit->pClassData->number].base; 
+	return MagClassTable[unit->pClassData->number].base + MagCharTable[GetReorderedUnitID(unit)].base; 
+} 
+int GetBaseMag(int charID, int classID) { 
+	return MagClassTable[classID].base + MagCharTable[charID].base; 
+} 
+
+int GetPromoMag(int classId) { 
+	return MagClassTable[classId].promo; 
 } 
 
 #endif 
@@ -1328,7 +2338,7 @@ int GetUnitMagGrowth(struct Unit* unit, int modifiersBool) {
 int GetUnitMaxMag(struct Unit* unit) { 
 	return 0;  
 } 
-
+int GetBaseMag(int a, int b) { return 0; } 
 int GetUnitBaseMag(struct Unit* unit) { 
 	return 0; 
 } 
@@ -1424,18 +2434,21 @@ int GetUnitHPGrowth(struct Unit* unit, int modifiersBool) {
 	int baseGrowth = 0;
 	int add = 0; 
 	if (modifiersBool) { add = GetGrowthModifiers(unit); } 
-	baseGrowth = unit->pCharacterData->growthHP; 
+	baseGrowth = GetReorderedUnit(unit)->growthHP; 
+	int originalGrowth = unit->pCharacterData->growthHP; 
 	if (ClassBasedGrowths) { baseGrowth = unit->pClassData->growthHP; } 
 	if (CombinedGrowths) { baseGrowth += unit->pClassData->growthHP; } 
 	if ((!ShouldRandomizeGrowth(unit)) || (!modifiersBool)) { return baseGrowth + add; } 
 	int growth = CallGet_Hp_Growth(unit); 
 	// we only need growth for the modifiers, so replace `add` with the difference 
-	if (growth != (-1)) { add = growth - baseGrowth; } 
+	if (growth != (-1)) { add = growth - originalGrowth; } 
 	growth = baseGrowth;
 	int player = (UNIT_FACTION(unit) == FACTION_BLUE); 
+	if (player && (RandBitflags->grow50 == 1)) { return 50; } // 50% growths 
 	if (player && (RandBitflags->growth == 2)) { return 0; } // 0% growths 
 	if (player && (RandBitflags->growth == 3)) { return 100; } // 100% growths 
 	if (unit->pClassData->growthHP > growth) { growth = unit->pClassData->growthHP; } 
+	growth = AdjustGrowthForStatInflation(growth);
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pCharacterData->number;  
 	int result = HashByPercent(growth, noise, 11); 
@@ -1445,22 +2458,24 @@ int GetUnitHPGrowth(struct Unit* unit, int modifiersBool) {
 	return result + add; 
 }
 
-
 int GetUnitPowGrowth(struct Unit* unit, int modifiersBool) {
 	int baseGrowth = 0;
 	int add = 0; 
 	if (modifiersBool) { add = GetGrowthModifiers(unit); } 
-	baseGrowth = unit->pCharacterData->growthPow; 
+	baseGrowth = GetReorderedUnit(unit)->growthPow; 
+	int originalGrowth = unit->pCharacterData->growthPow; 
 	if (ClassBasedGrowths) { baseGrowth = unit->pClassData->growthPow; } 
 	if (CombinedGrowths) { baseGrowth += unit->pClassData->growthPow; } 
 	if ((!ShouldRandomizeGrowth(unit)) || (!modifiersBool)) { return baseGrowth + add; } 
 	int growth = CallGet_Str_Growth(unit); 
-	if (growth != (-1)) { add = growth - baseGrowth; } 
+	if (growth != (-1)) { add = growth - originalGrowth; } 
 	growth = baseGrowth;
 	int player = (UNIT_FACTION(unit) == FACTION_BLUE); 
+	if (player && (RandBitflags->grow50 == 1)) { return 50; } // 50% growths 
 	if (player && (RandBitflags->growth == 2)) { return 0; } // 0% growths 
 	if (player && (RandBitflags->growth == 3)) { return 100; } // 100% growths 
 	if (unit->pClassData->growthPow > growth) { growth = unit->pClassData->growthPow; } 
+	growth = AdjustGrowthForStatInflation(growth);
 	int noise[4] = {0, 0, 0, 0};  
 	noise[0] = unit->pCharacterData->number; 
 	int result = HashByPercent(growth, noise, 21); 
@@ -1476,17 +2491,20 @@ int GetUnitSklGrowth(struct Unit* unit, int modifiersBool) {
 	int baseGrowth = 0;
 	int add = 0; 
 	if (modifiersBool) { add = GetGrowthModifiers(unit); } 
-	baseGrowth = unit->pCharacterData->growthSkl; 
+	baseGrowth = GetReorderedUnit(unit)->growthSkl; 
+	int originalGrowth = unit->pCharacterData->growthSkl; 
 	if (ClassBasedGrowths) { baseGrowth = unit->pClassData->growthSkl; } 
 	if (CombinedGrowths) { baseGrowth += unit->pClassData->growthSkl; } 
 	if ((!ShouldRandomizeGrowth(unit)) || (!modifiersBool)) { return baseGrowth + add; } 
 	int growth = CallGet_Skl_Growth(unit); 
-	if (growth != (-1)) { add = growth - baseGrowth; } 
+	if (growth != (-1)) { add = growth - originalGrowth; } 
 	growth = baseGrowth;
 	int player = (UNIT_FACTION(unit) == FACTION_BLUE); 
+	if (player && (RandBitflags->grow50 == 1)) { return 50; } // 50% growths 
 	if (player && (RandBitflags->growth == 2)) { return 0; } // 0% growths 
 	if (player && (RandBitflags->growth == 3)) { return 100; } // 100% growths 
 	if (unit->pClassData->growthSkl > growth) { growth = unit->pClassData->growthSkl; } 
+	growth = AdjustGrowthForStatInflation(growth);
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pCharacterData->number; 
 	int result = HashByPercent(growth, noise, 31); 
@@ -1502,17 +2520,20 @@ int GetUnitSpdGrowth(struct Unit* unit, int modifiersBool) {
 	int baseGrowth = 0;
 	int add = 0; 
 	if (modifiersBool) { add = GetGrowthModifiers(unit); } 
-	baseGrowth = unit->pCharacterData->growthSpd; 
+	baseGrowth = GetReorderedUnit(unit)->growthSpd; 
+	int originalGrowth = unit->pCharacterData->growthSpd; 
 	if (ClassBasedGrowths) { baseGrowth = unit->pClassData->growthSpd; } 
 	if (CombinedGrowths) { baseGrowth += unit->pClassData->growthSpd; } 
 	if ((!ShouldRandomizeGrowth(unit)) || (!modifiersBool)) { return baseGrowth + add; } 
 	int growth = CallGet_Spd_Growth(unit); 
-	if (growth != (-1)) { add = growth - baseGrowth; } 
+	if (growth != (-1)) { add = growth - originalGrowth; } 
 	growth = baseGrowth;
 	int player = (UNIT_FACTION(unit) == FACTION_BLUE); 
+	if (player && (RandBitflags->grow50 == 1)) { return 50; } // 50% growths 
 	if (player && (RandBitflags->growth == 2)) { return 0; } // 0% growths 
 	if (player && (RandBitflags->growth == 3)) { return 100; } // 100% growths 
 	if (unit->pClassData->growthSpd > growth) { growth = unit->pClassData->growthSpd; } 
+	growth = AdjustGrowthForStatInflation(growth);
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pCharacterData->number;  
 	int result = HashByPercent(growth, noise, 41); 
@@ -1528,17 +2549,20 @@ int GetUnitDefGrowth(struct Unit* unit, int modifiersBool) {
 	int baseGrowth = 0;
 	int add = 0; 
 	if (modifiersBool) { add = GetGrowthModifiers(unit); } 
-	baseGrowth = unit->pCharacterData->growthDef; 
+	int originalGrowth = unit->pCharacterData->growthDef; 
+	baseGrowth = GetReorderedUnit(unit)->growthDef; 
 	if (ClassBasedGrowths) { baseGrowth = unit->pClassData->growthDef; } 
 	if (CombinedGrowths) { baseGrowth += unit->pClassData->growthDef; } 
 	if ((!ShouldRandomizeGrowth(unit)) || (!modifiersBool)) { return baseGrowth + add; } 
 	int growth = CallGet_Def_Growth(unit); 
-	if (growth != (-1)) { add = growth - baseGrowth; } 
+	if (growth != (-1)) { add = growth - originalGrowth; } 
 	growth = baseGrowth;
 	int player = (UNIT_FACTION(unit) == FACTION_BLUE); 
+	if (player && (RandBitflags->grow50 == 1)) { return 50; } // 50% growths 
 	if (player && (RandBitflags->growth == 2)) { return 0; } // 0% growths 
 	if (player && (RandBitflags->growth == 3)) { return 100; } // 100% growths 
 	if (unit->pClassData->growthDef > growth) { growth = unit->pClassData->growthDef; } 
+	growth = AdjustGrowthForStatInflation(growth);
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pCharacterData->number; 
 	int result = HashByPercent(growth, noise, 51); 
@@ -1554,17 +2578,20 @@ int GetUnitResGrowth(struct Unit* unit, int modifiersBool) {
 	int baseGrowth = 0;
 	int add = 0; 
 	if (modifiersBool) { add = GetGrowthModifiers(unit); } 
-	baseGrowth = unit->pCharacterData->growthRes; 
+	baseGrowth = GetReorderedUnit(unit)->growthRes; 
+	int originalGrowth = unit->pCharacterData->growthRes; 
 	if (ClassBasedGrowths) { baseGrowth = unit->pClassData->growthRes; } 
 	if (CombinedGrowths) { baseGrowth += unit->pClassData->growthRes; } 
 	if ((!ShouldRandomizeGrowth(unit)) || (!modifiersBool)) { return baseGrowth + add; } 
 	int growth = CallGet_Res_Growth(unit); 
-	if (growth != (-1)) { add = growth - baseGrowth; } 
+	if (growth != (-1)) { add = growth - originalGrowth; }  
 	growth = baseGrowth;
 	int player = (UNIT_FACTION(unit) == FACTION_BLUE); 
+	if (player && (RandBitflags->grow50 == 1)) { return 50; } // 50% growths 
 	if (player && (RandBitflags->growth == 2)) { return 0; } // 0% growths 
 	if (player && (RandBitflags->growth == 3)) { return 100; } // 100% growths 
 	if (unit->pClassData->growthRes > growth) { growth = unit->pClassData->growthRes; } 
+	growth = AdjustGrowthForStatInflation(growth);
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pCharacterData->number; 
 	int result = HashByPercent(growth, noise, 61); 
@@ -1580,17 +2607,20 @@ int GetUnitLckGrowth(struct Unit* unit, int modifiersBool) {
 	int baseGrowth = 0;
 	int add = 0; 
 	if (modifiersBool) { add = GetGrowthModifiers(unit); } 
-	baseGrowth = unit->pCharacterData->growthLck; 
+	baseGrowth = GetReorderedUnit(unit)->growthLck; 
+	int originalGrowth = unit->pCharacterData->growthLck; 
 	if (ClassBasedGrowths) { baseGrowth = unit->pClassData->growthLck; } 
 	if (CombinedGrowths) { baseGrowth += unit->pClassData->growthLck; } 
 	if ((!ShouldRandomizeGrowth(unit)) || (!modifiersBool)) { return baseGrowth + add; } 
 	int growth = CallGet_Luk_Growth(unit); 
-	if (growth != (-1)) { add = growth - baseGrowth; } 
+	if (growth != (-1)) { add = growth - originalGrowth; } 
 	growth = baseGrowth;
-	int player = (UNIT_FACTION(unit) == FACTION_BLUE); 
+	int player = (UNIT_FACTION(unit) == FACTION_BLUE);
+	if (player && (RandBitflags->grow50 == 1)) { return 50; } // 50% growths 	
 	if (player && (RandBitflags->growth == 2)) { return 0; } // 0% growths 
 	if (player && (RandBitflags->growth == 3)) { return 100; } // 100% growths 
 	if (unit->pClassData->growthLck > growth) { growth = unit->pClassData->growthLck; } 
+	growth = AdjustGrowthForStatInflation(growth);
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pCharacterData->number; 
 	int result = HashByPercent(growth, noise, 71); 
@@ -1612,17 +2642,17 @@ extern s8 Roll1RN(int threshold); //8000E60
 
 void UnitCheckStatMins(struct Unit* unit) { 
 	if (MinClassBase) { 
-		int minStat = unit->pCharacterData->basePow + unit->pClassData->basePow; if (minStat < 0) { minStat = 0; } 
+		int minStat = GetReorderedUnit(unit)->basePow + unit->pClassData->basePow; if (minStat < 0) { minStat = 0; } 
 		if (unit->pow < minStat) { unit->pow = minStat; } 
-		minStat = unit->pCharacterData->baseSkl + unit->pClassData->baseSkl; if (minStat < 0) { minStat = 0; } 
+		minStat = GetReorderedUnit(unit)->baseSkl + unit->pClassData->baseSkl; if (minStat < 0) { minStat = 0; } 
 		if (unit->skl < minStat) { unit->skl = minStat; } 
-		minStat = unit->pCharacterData->baseSpd + unit->pClassData->baseSpd; if (minStat < 0) { minStat = 0; } 
+		minStat = GetReorderedUnit(unit)->baseSpd + unit->pClassData->baseSpd; if (minStat < 0) { minStat = 0; } 
 		if (unit->spd < minStat) { unit->spd = minStat; } 
-		minStat = unit->pCharacterData->baseDef + unit->pClassData->baseDef; if (minStat < 0) { minStat = 0; } 
+		minStat = GetReorderedUnit(unit)->baseDef + unit->pClassData->baseDef; if (minStat < 0) { minStat = 0; } 
 		if (unit->def < minStat) { unit->def = minStat; } 
-		minStat = unit->pCharacterData->baseRes + unit->pClassData->baseRes; if (minStat < 0) { minStat = 0; } 
+		minStat = GetReorderedUnit(unit)->baseRes + unit->pClassData->baseRes; if (minStat < 0) { minStat = 0; } 
 		if (unit->res < minStat) { unit->res = minStat; } 
-		minStat = unit->pCharacterData->baseLck; if (minStat < 0) { minStat = 0; } 
+		minStat = GetReorderedUnit(unit)->baseLck; if (minStat < 0) { minStat = 0; } 
 		if (unit->lck < minStat) { unit->lck = minStat; } 
 		if (StrMagInstalled) { minStat = GetUnitBaseMag(unit); if (minStat < 0) { minStat = 0; } 
 			if (unit->_u3A < minStat) { unit->_u3A = minStat; } } 
@@ -1639,19 +2669,33 @@ void UnitCheckStatMins(struct Unit* unit) {
 	} 
 } 
 
+#define MinPromotedStat 2 
+void MakePromotedUnitHaveMinStats(struct Unit* unit) { 
+	if (UNIT_CATTRIBUTES(unit) & CA_PROMOTED) { 
+		if (unit->pow < (MinPromotedStat+2)) { unit->pow += MinPromotedStat; } 
+		if (unit->skl < MinPromotedStat) { unit->skl += MinPromotedStat; } 
+		if (unit->spd < MinPromotedStat) { unit->spd += MinPromotedStat; } 
+		if (unit->def < MinPromotedStat) { unit->def += MinPromotedStat; } 
+		if (unit->res < MinPromotedStat) { unit->res += MinPromotedStat; } 
+		if (unit->lck < MinPromotedStat) { unit->lck += MinPromotedStat; } 
+		if (StrMagInstalled) {  
+		if ((unit->_u3A < (MinPromotedStat+2)) || (unit->_u3A > 127)) { unit->_u3A += MinPromotedStat; } } // _u3A is unsigned 
+	}
+} 
+
 //int NewGetStatDecrease(int growth, int noise[], int level, int offset, int useRn) {
 int NewGetStatDecrease(int growth) {
     int result = 0;
 
     while (growth > 100) {
-        result--;
+        result++;
         growth -= 100;
     }
 	//offset += (level*15) + level; 
 	
 	//if (useRN) { 
 	if (Roll1RN(growth)) { // 50 
-	result--; } 
+	result++; } 
 	//}
 	//else if (HashByte_Global(growth, 100, noise, offset) >= (100 - growth)) {
     //if (Roll1RN(growth)) { // 50 
@@ -1663,8 +2707,10 @@ int NewGetStatDecrease(int growth) {
 
 
 int GetAutoleveledStatDecrease(int growth, int levelCount, int stat) {
-	int posLevel = ABS(levelCount);
-	int result = stat + NewGetStatDecrease((growth * posLevel) + (NextRN_N((growth * posLevel) / 4) - (growth * posLevel) / 8)); 
+	levelCount = ABS(levelCount);
+	//int result = stat - NewGetStatDecrease((((growth * posLevel) + (NextRN_N(growth * posLevel) / 4)) - (growth * posLevel)) / 8); 
+	int result = stat - NewGetStatDecrease((growth * levelCount) + (NextRN_N((growth * levelCount) / 4) - (growth * levelCount) / 8));
+	//int result = stat - NewGetStatDecrease(growth * levelCount); 
 	if (result < 0) { result = 0; } 
     return result;
 }
@@ -1683,7 +2729,12 @@ void UnitAutolevelCore(struct Unit* unit, u8 classId, int levelCount) {
     }
     if (levelCount < 0) {
         unit->maxHP = GetAutoleveledStatDecrease(GetClassHPGrowth(unit , true),  levelCount, unit->maxHP);
-		if (unit->maxHP < 10) { unit->maxHP = 10; } 
+		if (IsUnitAlliedOrPlayable(unit)) { 
+			if (unit->maxHP < 15) { unit->maxHP = 15; } 
+		}
+		else { 
+			if (unit->maxHP < 10) { unit->maxHP = 10; } 
+		} 
         unit->pow   = GetAutoleveledStatDecrease(GetClassPowGrowth(unit, true), levelCount, unit->pow);
         unit->skl   = GetAutoleveledStatDecrease(GetClassSklGrowth(unit, true), levelCount, unit->skl);
         unit->spd   = GetAutoleveledStatDecrease(GetClassSpdGrowth(unit, true), levelCount, unit->spd);
@@ -1691,6 +2742,80 @@ void UnitAutolevelCore(struct Unit* unit, u8 classId, int levelCount) {
         unit->res   = GetAutoleveledStatDecrease(GetClassResGrowth(unit, true), levelCount, unit->res);
         unit->lck   = GetAutoleveledStatDecrease(GetClassLckGrowth(unit, true), levelCount, unit->lck);
 		if (StrMagInstalled) { unit->_u3A = GetAutoleveledStatDecrease(GetClassMagGrowth(unit, true), levelCount, unit->_u3A); } 
+    }
+	UnitCheckStatMins(unit); 
+	UnitCheckStatCaps(unit); 
+}
+
+#define MinCharAutolevelBonusGrowth 20
+int AdjustGrowthForLosingLevels(int growth, int avg) { 
+	int num = avg - (growth - avg); // invert growths so high growths become low and vice versa 
+	if (num < MinCharAutolevelBonusGrowth) { num = MinCharAutolevelBonusGrowth; } 
+	return num; 
+} 
+void UnitAutolevelCore_Char(struct Unit* unit, u8 classId, int levelCount) {
+    if (levelCount > 0) {
+		#ifdef USECHARGROWTHS
+        unit->maxHP += GetAutoleveledStatIncrease(GetUnitHPGrowth(unit , true),  levelCount);
+        unit->pow   += GetAutoleveledStatIncrease(GetUnitPowGrowth(unit, true), levelCount);
+        unit->skl   += GetAutoleveledStatIncrease(GetUnitSklGrowth(unit, true), levelCount);
+        unit->spd   += GetAutoleveledStatIncrease(GetUnitSpdGrowth(unit, true), levelCount);
+        unit->def   += GetAutoleveledStatIncrease(GetUnitDefGrowth(unit, true), levelCount);
+        unit->res   += GetAutoleveledStatIncrease(GetUnitResGrowth(unit, true), levelCount);
+        unit->lck   += GetAutoleveledStatIncrease(GetUnitLckGrowth(unit, true), levelCount);
+		if (StrMagInstalled) { unit->_u3A += GetAutoleveledStatIncrease(GetUnitMagGrowth(unit, true), levelCount); } 
+		#else 
+        unit->maxHP += GetAutoleveledStatIncrease(GetClassHPGrowth(unit , true),  levelCount);
+        unit->pow   += GetAutoleveledStatIncrease(GetClassPowGrowth(unit, true), levelCount);
+        unit->skl   += GetAutoleveledStatIncrease(GetClassSklGrowth(unit, true), levelCount);
+        unit->spd   += GetAutoleveledStatIncrease(GetClassSpdGrowth(unit, true), levelCount);
+        unit->def   += GetAutoleveledStatIncrease(GetClassDefGrowth(unit, true), levelCount);
+        unit->res   += GetAutoleveledStatIncrease(GetClassResGrowth(unit, true), levelCount);
+        unit->lck   += GetAutoleveledStatIncrease(GetClassLckGrowth(unit, true), levelCount);
+		if (StrMagInstalled) { unit->_u3A += GetAutoleveledStatIncrease(GetClassMagGrowth(unit, true), levelCount); } 
+		#endif 
+    }
+    if (levelCount < 0) {
+		#ifdef USECHARGROWTHS
+        unit->maxHP = GetAutoleveledStatDecrease(GetUnitHPGrowth(unit , true),  levelCount, unit->maxHP);
+		#else 
+		unit->maxHP = GetAutoleveledStatDecrease(GetClassHPGrowth(unit , true),  levelCount, unit->maxHP);
+		#endif 
+		if (IsUnitAlliedOrPlayable(unit)) { 
+			if (unit->maxHP < 15) { unit->maxHP = 15; } 
+		}
+		else { 
+			if (unit->maxHP < 10) { unit->maxHP = 10; } 
+		} 
+		#ifdef USECHARGROWTHS
+        unit->pow   = GetAutoleveledStatDecrease(GetUnitPowGrowth(unit, true), levelCount, unit->pow);
+        unit->skl   = GetAutoleveledStatDecrease(GetUnitSklGrowth(unit, true), levelCount, unit->skl);
+        unit->spd   = GetAutoleveledStatDecrease(GetUnitSpdGrowth(unit, true), levelCount, unit->spd);
+        unit->def   = GetAutoleveledStatDecrease(GetUnitDefGrowth(unit, true), levelCount, unit->def);
+        unit->res   = GetAutoleveledStatDecrease(GetUnitResGrowth(unit, true), levelCount, unit->res);
+        unit->lck   = GetAutoleveledStatDecrease(GetUnitLckGrowth(unit, true), levelCount, unit->lck);
+		if (StrMagInstalled) { unit->_u3A = GetAutoleveledStatDecrease(GetUnitMagGrowth(unit, true), levelCount, unit->_u3A); } 
+		#else 
+		int i = 0; 
+		int avg = 0; 
+		avg += GetClassPowGrowth(unit, false); i++; 
+		avg += GetClassSklGrowth(unit, false); i++; 
+		avg += GetClassSpdGrowth(unit, false); i++; 
+		avg += GetClassDefGrowth(unit, false); i++; 
+		avg += GetClassResGrowth(unit, false); i++; 
+		avg += GetClassLckGrowth(unit, false); i++; 
+		if (StrMagInstalled) { 
+		avg += GetClassMagGrowth(unit, false); i++; }
+		avg = avg / i; 
+		//avg += 5; 
+        unit->pow   = GetAutoleveledStatDecrease(AdjustGrowthForLosingLevels(GetClassPowGrowth(unit, false), avg), levelCount, unit->pow);
+        unit->skl   = GetAutoleveledStatDecrease(AdjustGrowthForLosingLevels(GetClassSklGrowth(unit, false), avg), levelCount, unit->skl);
+        unit->spd   = GetAutoleveledStatDecrease(AdjustGrowthForLosingLevels(GetClassSpdGrowth(unit, false), avg), levelCount, unit->spd);
+        unit->def   = GetAutoleveledStatDecrease(AdjustGrowthForLosingLevels(GetClassDefGrowth(unit, false), avg), levelCount, unit->def);
+        unit->res   = GetAutoleveledStatDecrease(AdjustGrowthForLosingLevels(GetClassResGrowth(unit, false), avg), levelCount, unit->res);
+        unit->lck   = GetAutoleveledStatDecrease(AdjustGrowthForLosingLevels(GetClassLckGrowth(unit, false), avg), levelCount, unit->lck);
+		if (StrMagInstalled) { unit->_u3A = GetAutoleveledStatDecrease(AdjustGrowthForLosingLevels(GetClassMagGrowth(unit, false), avg), levelCount, unit->_u3A); } 
+		#endif 
     }
 	UnitCheckStatMins(unit); 
 	UnitCheckStatCaps(unit); 
@@ -1713,39 +2838,179 @@ s8 CanBattleUnitGainLevels(struct BattleUnit* bu) {
 const s8 MovModifiers[] = { 0, 0, 0, 0, 0, 1, 1, 2, 0 } ; 
 const s8 ConModifiers[] = { 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0 } ; 
 extern int RandomizeMovConBonus; 
-
+int GetAdjustedLevel(const struct CharacterData* table, const struct ClassData* classTable) { 
+	int promoted = ((table->attributes | classTable->attributes) & CA_PROMOTED);
+	int level = table->baseLevel; 
+	if (promoted) { level += 15; } 
+	return level; 
+} 
+extern int BonusItemChance; 
+#define HPStatMaxBonus 12
+int GetHPStatMaxBonus(struct Unit* unit, int stat, int avg) { 
+	int result = (stat + avg) / 2; 
+	int bonus = (AdjustStatForInflatedNumbers(HPStatMaxBonus) * ((RandValues->variance)*5)) / 100; 
+	result += bonus; 
+	if (result < stat) { result = stat; } 
+	if (result < (avg + 1)) { result = avg+1; } 
+	return result; 
+} 
+#define StatMaxBonus 8 
+int GetStatMaxBonus(struct Unit* unit, int stat, int avg) { 
+	int result = (stat + avg) / 2; 
+	int bonus = (SlightlyAdjustStatForInflatedNumbers(StatMaxBonus) * ((RandValues->variance)*5)) / 100; 
+	result += bonus; 
+	if (result < stat) { result = stat; } 
+	if (result < (avg + 1)) { result = avg+1; } 
+	return result; 
+} 
 
 void UnitInitFromDefinition(struct Unit* unit, const struct UnitDefinition* uDef) {
     unit->pCharacterData = GetCharacterData(uDef->charIndex);
+	const struct CharacterData* character = unit->pCharacterData; 
     unit->level = uDef->level;
 	unit->xPos = uDef->xPosition;
 	unit->yPos = uDef->yPosition; 
+	
+	
+	
 	int noise[4] = {0, 0, 0, 0};  // 1 extra so gCh is used 
-	noise[0] = unit->pCharacterData->number;
-	#ifndef FE8 
-	noise[1] = uDef->xMove; 
-	noise[2] = uDef->yMove;  
-	#endif 
-	#ifdef FE8 
-	noise[1] = uDef->xPosition; 
-	noise[2] = uDef->yPosition;  
-	#endif 
+	int c = 0;
+	
+	#define UseRandClass2
+	
+	#ifdef UseRandClass2
+	u8 noise2[24]; 
+	noise2[c] = character->number; c++; 
+	noise2[c] = character->baseLevel; c++; 
+	noise2[c] = character->baseHP; c++; 
+	noise2[c] = character->basePow; c++; 
+	noise2[c] = character->baseSkl; c++; 
+	noise2[c] = character->baseSpd; c++; 
+	noise2[c] = character->baseDef; c++; 
+	noise2[c] = character->baseRes; c++; 
+	noise2[c] = character->baseLck; c++; 
+	noise2[c] = character->growthHP; c++; 
+	noise2[c] = character->growthPow; c++; 
+	noise2[c] = character->growthSkl; c++; 
+	noise2[c] = character->growthSpd; c++; 
+	noise2[c] = character->growthDef; c++; 
+	noise2[c] = character->growthRes; c++; 
+	noise2[c] = character->growthLck; c++; 
+	noise2[c] = character->portraitId; c++; 
+	noise2[c] = character->affinity; c++; 
+	noise2[c] = unit->index; c++;
+	if (UNIT_FACTION(unit) != FACTION_BLUE) { 
+		if (!(UNIT_CATTRIBUTES(unit) & CA_BOSS)) { 
+		#ifndef FE8 
+		noise2[c] = uDef->xMove; c++;
+		noise2[c] = uDef->yMove; c++;
+		#endif 
+		#ifdef FE8 
+		noise2[c] = uDef->xPosition; c++; 
+		noise2[c] = uDef->yPosition; c++; 
+		#endif 
+		noise2[c] = gCh; c++; // so gCh is used 
+		} 
+	} 
+	noise2[c] = 0; 
+	noise2[c+1] = 0; 
+	for (int i = c; i >= 0; --i) { 
+	    if (!noise2[i]) { noise2[i]++; }
+		//noise2[i] += 1; 
+	} 
 
-    if (uDef->classIndex) { 
+	
+	noise[0] = character->number + character->baseLevel + character->baseHP + character->basePow + character->baseSkl + character->baseSpd + character->baseDef + character->baseRes + character->baseLck;
+	noise[1] = unit->index + character->portraitId + character->growthHP + character->growthPow + character->growthSkl + character->growthSpd + character->growthDef + character->growthRes + character->growthLck; 
+
+
+	#else 
+	noise[0] = character->number + character->baseLevel + character->baseHP; 
+	noise[1] = unit->index + character->portraitId; 
+	
+	#endif 
+	
+	
+	if (UNIT_FACTION(unit) != FACTION_BLUE) { 
+		if (!(UNIT_CATTRIBUTES(unit) & CA_BOSS)) { 
+		#ifndef FE8 
+		noise[1] = uDef->xMove; 
+		noise[2] = uDef->yMove;  
+		#endif 
+		#ifdef FE8 
+		noise[1] = uDef->xPosition; 
+		noise[2] = uDef->yPosition;  
+		#endif 
+		noise[3] = 0; // so gCh is used 
+		} 
+	} 
+	else { 
+
+	noise[2] = 5; // becomes class id 
+	noise[3] = character->affinity; // players don't use gCh anymore 
+	}
+
+	
+	
+	
+	
+
+	int RandomizeRecruitment = ShouldRandomizeRecruitmentForUnitID(unit->pCharacterData->number); 
+	const struct ClassData* originalClass;
+	const struct ClassData* randCharOriginalClass;
+	if (uDef->classIndex) { originalClass = GetClassData(uDef->classIndex); } 
+	else { originalClass = GetClassData(unit->pCharacterData->defaultClass); } 
+	
+	if (RandomizeRecruitment) { character = GetReorderedUnit(unit); randCharOriginalClass = GetClassData(character->defaultClass); } 
+
+    if ((!uDef->classIndex) || RandomizeRecruitment) {
+		#ifdef UseRandClass2 
+        unit->pClassData = GetClassData(RandClass2(character->defaultClass, noise2, unit));
+		#else 
+        unit->pClassData = GetClassData(RandClass(character->defaultClass, noise, unit));
+		#endif 
+	}
+    else { 
+		#ifdef UseRandClass2 
+        unit->pClassData = GetClassData(RandClass2(uDef->classIndex, noise2, unit));
+		#else 
         unit->pClassData = GetClassData(RandClass(uDef->classIndex, noise, unit));
+		#endif 
 	}
-    else {
-        unit->pClassData = GetClassData(RandClass(unit->pCharacterData->defaultClass, noise, unit));
-	}
+	
+	// make them the same level of promotion half the time when possible 
+	if (RandomizeRecruitment) { 
+		if ((!(originalClass->attributes & CA_PROMOTED)) && (unit->pClassData->attributes & CA_PROMOTED)) { 
+			if ((HashByte_Ch(noise[0], 5, noise, 3))) { // 20%, as HashByte never returns the max number 
+				int prepromoteClassId = unit->pClassData->promotion; 
+				if (prepromoteClassId) { 
+					#ifdef FE6 
+					if (prepromoteClassId != 0x44) { // some classes (eg. Manakete, King) "promote" from ballista 
+					#endif 
+					
+					unit->pClassData = originalClass; // so RandClass will treat us as promoted or not based on that 
+					#ifdef UseRandClass2 
+					unit->pClassData = GetClassData(RandClass2(prepromoteClassId, noise2, unit));
+					#else 
+					unit->pClassData = GetClassData(RandClass(prepromoteClassId, noise, unit));
+					#endif 
+					
+					#ifdef FE6 
+					} 
+					#endif 
+				} 
+			}
+		}
+	}		
 
 	int wexp = 0; 
 	int tmp = 0; 
 	int personalWexp = 0; 
-	noise[0] = unit->pClassData->number; 
+	noise[2] = unit->pClassData->number; 
 	tmp = 0; 
 	if (ShouldRandomizeClass(unit)) { 
 		for (int c = 0; c < 8; ++c) { 
-			tmp = unit->pCharacterData->baseRanks[c]; 
+			tmp = character->baseRanks[c]; 
 			if (tmp > personalWexp) { personalWexp = tmp; } 
 		}
 	} 
@@ -1770,8 +3035,8 @@ void UnitInitFromDefinition(struct Unit* unit, const struct UnitDefinition* uDef
 		}
 		
 		if (!ShouldRandomizeClass(unit)) { 
-			if (unit->pCharacterData->baseRanks[i]) { // original
-				unit->ranks[i] = unit->pCharacterData->baseRanks[i]; } 
+			if (character->baseRanks[i]) { // original
+				unit->ranks[i] = character->baseRanks[i]; } 
 		} 
     }
 
@@ -1791,8 +3056,6 @@ void UnitInitFromDefinition(struct Unit* unit, const struct UnitDefinition* uDef
     unit->ai3And4 &= 0xFFF8;
     unit->ai3And4 |= uDef->ai[2];
     unit->ai3And4 |= (uDef->ai[3] << 8);
-	
-	const struct CharacterData* character = unit->pCharacterData; 
 	int max150percent = 0; 
 	if (UNIT_FACTION(unit) != FACTION_BLUE) { max150percent = 2; } 
 	if (UNIT_CATTRIBUTES(unit) & CA_PROMOTED) { max150percent = 1; } 
@@ -1800,7 +3063,7 @@ void UnitInitFromDefinition(struct Unit* unit, const struct UnitDefinition* uDef
 	if (gCh > 0xD) { if (max150percent == 2) { max150percent = 0; } } // Lyn mode + first ch of eliwood/hector mode: nerf enemies a little 
 	if (gCh > 0xE) { if (max150percent == 1) { max150percent = 0; } } // Lyn mode + first 2 chs of eliwood/hector mode: nerf promoted units a little 
 	
-    unit->maxHP = RandStat(unit, character->baseHP + unit->pClassData->baseHP, noise, 15, max150percent);
+    unit->maxHP = RandHPStat(unit, character->baseHP + unit->pClassData->baseHP, noise, 15, 3);
 	if (IsUnitAlliedOrPlayable(unit)) { 
 		if (unit->maxHP < 15) { unit->maxHP += 15; } 
 	}
@@ -1820,7 +3083,7 @@ void UnitInitFromDefinition(struct Unit* unit, const struct UnitDefinition* uDef
 	unit->conBonus = 0; unit->movBonus = 0; 
 	#endif 
 	if (RandomizeMovConBonus) { 
-		if (ShouldRandomizeClass(unit)) {
+		if (RandBitflags->base) {
 			if (IsUnitAlliedOrPlayable(unit)) { 
 				unit->conBonus = ConModifiers[HashByte_Global(1, sizeof(ConModifiers), noise, 16)]; // num, max, noise, offset 
 				if (unit->pClassData->baseMov < 7) { 
@@ -1855,8 +3118,76 @@ void UnitInitFromDefinition(struct Unit* unit, const struct UnitDefinition* uDef
 		if (bonusLevels) { UnitAutolevelCore(unit, unit->pClassData->number, bonusLevels); } 
 	}
 	
+	if (RandomizeRecruitment) { 
+		int bonusLevels = GetAdjustedLevel(unit->pCharacterData, originalClass) - GetAdjustedLevel(character, unit->pClassData); 
+		bonusLevels += GetAdjustedLevel(character, originalClass) - GetAdjustedLevel(character, randCharOriginalClass); 
+		if (bonusLevels) { UnitAutolevelCore_Char(unit, unit->pClassData->number, bonusLevels); } 
+		//if (bonusLevels) { UnitAutolevelCore(unit, unit->pClassData->number, bonusLevels); } 
+	} 
 	
+	int UnitHasBonusItem = false;
+	int noWeapons = true; 
+	
+	if (RandBitflags->foundItems) { 
+		if (HashByte_Ch(1, 100, noise, 8) < BonusItemChance) { UnitHasBonusItem = true; 
+			if (HashByte_Ch(2, 100, noise, 7) < 50) { 
+				noWeapons = false; if (UNIT_FACTION(unit) == FACTION_RED) { unit->state |= US_DROP_ITEM; } 
+			} 
+		}
+	} 
+	
+	c = 2; 
+	if (UNIT_FACTION(unit) == FACTION_BLUE) { c = 3; } 
+	if (UnitHasBonusItem) {  
+		for (int i = 0; i < c; ++i) { 
+		if (unit->items[i]) { continue; } 
+		UnitAddItem(unit, RandNewItem(4, noise, i, false, true, noWeapons)); break; 
+		//RandNewItem(int item, int noise[], int offset, int costReq, int varyByCh, int noWeapons)
+		}
+	} 
+	MakePromotedUnitHaveMinStats(unit); 
 	UnitCheckStatMins(unit); 
+	
+	int orgHP  = unit->pCharacterData->baseHP  + originalClass->baseHP; 
+	int orgPow = unit->pCharacterData->basePow + originalClass->basePow; 
+	int orgSkl = unit->pCharacterData->baseSkl + originalClass->baseSkl; 
+	int orgSpd = unit->pCharacterData->baseSpd + originalClass->baseSpd; 
+	int orgDef = unit->pCharacterData->baseDef + originalClass->baseDef; 
+	int orgRes = unit->pCharacterData->baseRes + originalClass->baseRes; 
+	int orgLck = unit->pCharacterData->baseLck; 
+	int countOfStats = 6; 
+	int avgStat = orgPow + orgSkl + orgSpd + orgDef + orgRes + orgLck; 
+	#ifdef FE8 
+	int orgMag = 0; 
+	if (SkillSysInstalled) { 
+		orgMag = GetBaseMag(unit->pCharacterData->number, originalClass->number); 
+		avgStat += orgMag; countOfStats++; 
+	} 
+	#endif 
+	avgStat = (avgStat + (countOfStats / 2)) / countOfStats; 
+	int max = GetHPStatMaxBonus(unit, orgHP, avgStat); 
+	if (unit->maxHP > max) { unit->maxHP = max; unit->curHP = max; } 
+	max = GetStatMaxBonus(unit, orgPow, avgStat); 
+	if (unit->pow > max) { unit->pow = max; } 
+	max = GetStatMaxBonus(unit, orgSkl, avgStat); 
+	if (unit->skl > max) { unit->skl = max; } 
+	max = GetStatMaxBonus(unit, orgSpd, avgStat); 
+	if (unit->spd > max) { unit->spd = max; } 
+	max = GetStatMaxBonus(unit, orgDef, avgStat); 
+	if (unit->def > max) { unit->def = max; } 
+	max = GetStatMaxBonus(unit, orgRes, avgStat); 
+	if (unit->res > max) { unit->res = max; } 
+	max = GetStatMaxBonus(unit, orgLck, avgStat); 
+	if (unit->lck > max) { unit->lck = max; } 
+	
+	#ifdef FE8
+	if (SkillSysInstalled) { 	
+		max = GetStatMaxBonus(unit, orgMag, avgStat); 
+		if (unit->_u3A > max) { unit->_u3A = max; } 
+	} 
+	#endif 
+	
+	
 	UnitCheckStatCaps(unit);
 }
 
@@ -1900,85 +3231,90 @@ void UnitLoadStatsFromCharacter(struct Unit* unit, const struct CharacterData* c
 }
 
 
-
 extern int PlayerMaxHP; 
 extern int EnemyBossMaxHP; 
 extern int EnemyMaxHP; 
-int GetUnitMaxHP(struct Unit* unit) { 
+int GetUnitHPCap(struct Unit* unit) { 
 	if (UNIT_CATTRIBUTES(unit) & CA_BOSS) { if (unit->pCharacterData->number > 0x3F) { return EnemyBossMaxHP; } } 
 	else { if (UNIT_FACTION(unit) != FACTION_RED) { return PlayerMaxHP; } } 
 	return EnemyMaxHP; 
 } 
-
+//8000ad2
 int GetUnitMaxPow(struct Unit* unit) { 
 	int cap = ((unit)->pClassData->maxPow); //return cap;
 	if (!ShouldRandomizeStatCaps(unit)) { return cap; } 
-	if (RandBitflags->caps == 2) { return 30; } 
+	int max = GetGeneralStatCap(); 
+	if (max != (-1)) { return max; } 
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pClassData->number;  
 	int result = HashByPercent(cap, noise, 17); 
-	if (result < (cap / 2)) { result += HashByte_Global(cap, (cap/2), noise, 13); }  
-	if (result > 30) { result = 30; } 
+	if (result < (cap >> 1)) { result += HashByte_Global(cap, (cap/2), noise, 13); }  
+	if (result > GetGlobalStatCap()) { result = GetGlobalStatCap(); } 
 	return result;  
 } 
 
 int GetUnitMaxSkl(struct Unit* unit) { 
 	int cap = ((unit)->pClassData->maxSkl); //return cap;
 	if (!ShouldRandomizeStatCaps(unit)) { return cap; } 
-	if (RandBitflags->caps == 2) { return 30; } 
+	int max = GetGeneralStatCap(); 
+	if (max != (-1)) { return max; } 
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pClassData->number; 
 	int result = HashByPercent(cap, noise, 27); 
-	if (result < (cap / 2)) { result += HashByte_Global(cap, (cap/2), noise, 23); } 
-	if (result > 30) { result = 30; } 
+	if (result < (cap >> 1)) { result += HashByte_Global(cap, (cap/2), noise, 23); } 
+	if (result > GetGlobalStatCap()) { result = GetGlobalStatCap(); } 
 	return result;   
 } 
 
 int GetUnitMaxSpd(struct Unit* unit) { 
 	int cap = ((unit)->pClassData->maxSpd); //return cap;
 	if (!ShouldRandomizeStatCaps(unit)) { return cap; } 
-	if (RandBitflags->caps == 2) { return 30; } 
+	int max = GetGeneralStatCap(); 
+	if (max != (-1)) { return max; } 
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pClassData->number; 
 	int result = HashByPercent(cap, noise, 37); 
-	if (result < (cap / 2)) { result += HashByte_Global(cap, (cap/2), noise, 33); } 
-	if (result > 30) { result = 30; } 
+	if (result < (cap >> 1)) { result += HashByte_Global(cap, (cap/2), noise, 33); } 
+	if (result > GetGlobalStatCap()) { result = GetGlobalStatCap(); } 
 	return result;  
 } 
 
 int GetUnitMaxDef(struct Unit* unit) { 
 	int cap = ((unit)->pClassData->maxDef); //return cap;
 	if (!ShouldRandomizeStatCaps(unit)) { return cap; } 
-	if (RandBitflags->caps == 2) { return 30; } 
+	int max = GetGeneralStatCap(); 
+	if (max != (-1)) { return max; } 
 	int noise[4] = {0, 0, 0, 0};  
 	noise[0] = unit->pClassData->number; 
 	int result = HashByPercent(cap, noise, 47); 
-	if (result < (cap / 2)) { result += HashByte_Global(cap, (cap/2), noise, 43); } 
-	if (result > 30) { result = 30; } 
+	if (result < (cap >> 1)) { result += HashByte_Global(cap, (cap/2), noise, 43); } 
+	if (result > GetGlobalStatCap()) { result = GetGlobalStatCap(); } 
 	return result;  
 } 
 
 int GetUnitMaxRes(struct Unit* unit) { 
 	int cap = ((unit)->pClassData->maxRes); //return cap;
 	if (!ShouldRandomizeStatCaps(unit)) { return cap; } 
-	if (RandBitflags->caps == 2) { return 30; } 
+	int max = GetGeneralStatCap(); 
+	if (max != (-1)) { return max; } 
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pClassData->number; 
 	int result = HashByPercent(cap, noise, 57); 
-	if (result < (cap / 2)) { result += HashByte_Global(cap, (cap/2), noise, 53); } 
-	if (result > 30) { result = 30; } 
+	if (result < (cap >> 1)) { result += HashByte_Global(cap, (cap/2), noise, 53); } 
+	if (result > GetGlobalStatCap()) { result = GetGlobalStatCap(); } 
 	return result;  
 } 
 
 int GetUnitMaxLck(struct Unit* unit) { 
-	int cap = 30;
+	int cap = GetGlobalStatCap();
 	if (!ShouldRandomizeStatCaps(unit)) { return cap; } 
-	if (RandBitflags->caps == 2) { return 30; } 
+	int max = GetGeneralStatCap(); 
+	if (max != (-1)) { return max; } 
 	int noise[4] = {0, 0, 0, 0}; 
 	noise[0] = unit->pClassData->number; 
 	int result = HashByPercent(cap, noise, 67); 
-	if (result < (cap / 2)) { result += HashByte_Global(cap, (cap/2), noise, 63); } 
-	if (result > 30) { result = 30; } 
+	if (result < (cap >> 1)) { result += HashByte_Global(cap, (cap/2), noise, 63); } 
+	if (result > GetGlobalStatCap()) { result = GetGlobalStatCap(); } 
 	return result;  
 } 
 
@@ -2005,7 +3341,7 @@ int NewGetStatIncrease(int growth, int noise[], int level, int offset, int useRN
 	if ((RandBitflags->levelups == 2)) { 
 		if (level < 1) { level = 1; } 
 		// +growth so the first levelup isn't always blank in fixed growths 
-		if (((growth * (level)) / 100) < (((growth * level+1) + growth) / 100)) { 
+		if (Div1((growth * (level)), 100) < Div1(((growth * level+1) + growth), 100)) { 
 			result++; 
 		} 
 		return result; 
@@ -2337,10 +3673,11 @@ void CheckBattleUnitLevelUp(struct BattleUnit* bu) {
 #define UNIT_CON_MAX(aUnit) ((aUnit)->pClassData->maxCon)
 #define UNIT_MOV_MAX(aUnit) (15)
 void UnitCheckStatCaps(struct Unit* unit) {
-    if (unit->maxHP > CallGetMaxHP(unit)) { 
-	unit->maxHP = CallGetMaxHP(unit); } 
+	int max = CallGetMaxHP(unit); 
+    if (unit->maxHP > max) { 
+	unit->maxHP = max; } 
 
-	int max = GetUnitMaxPow(unit);
+	max = GetUnitMaxPow(unit);
     if (unit->pow > max ) { 
 	unit->pow = max; } 
 
@@ -2390,10 +3727,11 @@ void UnitCheckStatCaps(struct Unit* unit) {
 
 
 void CheckBattleUnitStatCaps(struct Unit* unit, struct BattleUnit* bu) {
-    if ((unit->maxHP + bu->changeHP) > CallGetMaxHP(unit)) { 
-	bu->changeHP = CallGetMaxHP(unit) - unit->maxHP; } 
+	int max = CallGetMaxHP(unit); 
+    if ((unit->maxHP + bu->changeHP) > max) { 
+	bu->changeHP = max - unit->maxHP; } 
 
-	int max = GetUnitMaxPow(unit);
+	max = GetUnitMaxPow(unit);
     if ((unit->pow + bu->changePow) > max ) { 
 	bu->changePow = max - unit->pow; } 
 
@@ -2423,8 +3761,67 @@ void CheckBattleUnitStatCaps(struct Unit* unit, struct BattleUnit* bu) {
 	} 
 }
 
+#ifndef FE6 
+void ApplyUnitPromotion(struct Unit* unit, u8 classId) {
+    const struct ClassData* promotedClass = GetClassData(classId);
+	#ifdef FE8 
+    int baseClassId = unit->pClassData->number;
+    int promClassId = promotedClass->number;
+	#endif 
 
+    int i;
 
+    // Apply stat ups
+    unit->maxHP += promotedClass->promotionHp;
+    unit->pow += promotedClass->promotionPow;
+    unit->skl += promotedClass->promotionSkl;
+    unit->spd += promotedClass->promotionSpd;
+    unit->def += promotedClass->promotionDef;
+    unit->res += promotedClass->promotionRes;
+	#ifdef FE8 
+	if (SkillSysInstalled) { 
+	unit->_u3A += GetPromoMag(classId); 
+	} 
+	#endif 
+
+    // Remove base class' base wexp from unit wexp
+    for (i = 0; i < 8; ++i)
+        unit->ranks[i] -= unit->pClassData->baseRanks[i];
+
+    // Update unit class
+    unit->pClassData = promotedClass;
+
+    // Add promoted class' base wexp to unit wexp
+    for (i = 0; i < 8; ++i) {
+        int wexp = unit->ranks[i];
+
+        wexp += unit->pClassData->baseRanks[i];
+
+        if (wexp > 251) // wexp s rank 
+            wexp = 251;
+
+        unit->ranks[i] = wexp;
+    }
+
+	#ifdef FE8 
+    // If Pupil -> Shaman promotion, set Anima rank to 0
+    if (baseClassId == 0x3E && promClassId == 0x2D) { // pupil to shaman 
+		unit->ranks[5] = 0; } // anima = 0 
+	#endif 
+
+    unit->level = 1;
+    unit->exp   = 0;
+
+    unit->curHP += promotedClass->promotionHp;
+	UnitCheckStatCaps(unit); 
+    if (unit->curHP > GetUnitMaxHp(unit))
+        unit->curHP = GetUnitMaxHp(unit);
+}
+
+void ApplyUnitDefaultPromotion(struct Unit* unit) {
+    ApplyUnitPromotion(unit, unit->pClassData->promotion);
+} 
+#endif 
 
 
 
@@ -2497,6 +3894,7 @@ const struct ProcCmd ConfigMenuProcCmd[] =
 	PROC_REPEAT(ConfigMenuLoop), 
 	PROC_CALL(StartFastFadeToBlack), 
 	PROC_REPEAT(WaitForFade), 
+	PROC_CALL(ReloadAllUnits), 
 	PROC_CALL(RestoreBackgrounds), 
     PROC_CALL(UnlockGame),
     PROC_CALL(BMapDispResume),
@@ -2538,51 +3936,70 @@ const char Option0[OPT0NUM][5] = { // 2nd number is max number of characters for
 }; 
 #endif 
 
-#define OPT1NUM 2
+#define OPT1NUM 6
 #ifdef FE6 
-extern const char Option1[OPT1NUM][16]; // do align 16 before each? 
+extern const char Option1[OPT1NUM][64]; // do align 16 before each? 
 #else 
-const char Option1[OPT1NUM][8] = { // Base Stats 
+const char Option1[OPT1NUM][32] = { // Characters
+"Vanilla",
+"Players reordered",
+"Bosses reordered",
+"Players & Bosses reordered",
+"Players and Bosses swap",
+"Random",
+}; 
+#endif 
+
+#define OPT2NUM 2
+#ifdef FE6 
+extern const char Option2[OPT2NUM][32]; // do align 16 before each? 
+#else 
+const char Option2[OPT2NUM][8] = { // Base Stats 
 "Vanilla",
 "Random",
 }; 
 #endif
-#define OPT2NUM 4
+#define OPT3NUM 5
 #ifdef FE6 
-extern const char Option2[OPT2NUM][16]; // do align 16 before each? 
+extern const char Option3[OPT3NUM][32]; // do align 16 before each? 
 #else 
-const char Option2[OPT2NUM][15] = { // Growths
+const char Option3[OPT3NUM][15] = { // Growths
 "Vanilla",
 "Random",
 "0%", 
 "100%",
+"50%",
 }; 
 #endif
-#define OPT3NUM 3
+#define OPT4NUM 3
 #ifdef FE6 
-extern const char Option3[OPT3NUM][16]; // do align 16 before each? 
+extern const char Option4[OPT4NUM][32]; // do align 16 before each? 
 #else 
-const char Option3[OPT3NUM][15] = { // Levelups 
+const char Option4[OPT4NUM][15] = { // Levelups 
 "Vanilla",
 "Based on seed", // Seeded if randomizer is on, vanilla otherwise  
 "Fixed", 
 };
 #endif
-#define OPT4NUM 3
+#define OPT5NUM 7
 #ifdef FE6 
-extern const char Option4[OPT4NUM][16]; // do align 16 before each? 
+extern const char Option5[OPT5NUM][32]; // do align 16 before each? 
 #else 
-const char Option4[OPT4NUM][10] = { // Stat Caps 
+const char Option5[OPT5NUM][10] = { // Stat Caps 
 "Vanilla",
 "Random",
-"Always 30", 
+"0", 
+"15", 
+"30", 
+"45", 
+"60", 
 }; 
 #endif
-#define OPT5NUM 4
+#define OPT6NUM 4
 #ifdef FE6 
-extern const char Option5[OPT5NUM][16]; // do align 16 before each? 
+extern const char Option6[OPT6NUM][64]; // do align 16 before each? 
 #else 
-const char Option5[OPT5NUM][20] = { // Class
+const char Option6[OPT6NUM][20] = { // Class
 "Vanilla",
 "Random",
 "Random for players",
@@ -2591,11 +4008,11 @@ const char Option5[OPT5NUM][20] = { // Class
 //"Enemies",
 }; 
 #endif
-#define OPT6NUM 4
+#define OPT7NUM 4
 #ifdef FE6 
-extern const char Option6[OPT6NUM][16]; // do align 16 before each? 
+extern const char Option7[OPT7NUM][64]; // do align 16 before each? 
 #else 
-const char Option6[OPT6NUM][25] = { // Items
+const char Option7[OPT7NUM][25] = { // Items
 "Vanilla",
 "Random",
 "Random found items only",
@@ -2603,87 +4020,88 @@ const char Option6[OPT6NUM][25] = { // Items
 }; 
 #endif
 
-#define OPT7NUM 2
+#define OPT8NUM 2
 #ifdef FE6 
-extern const char Option7[OPT7NUM][16]; // do align 16 before each? 
+extern const char Option8[OPT8NUM][32]; // do align 16 before each? 
 #else 
-const char Option7[OPT7NUM][10] = { 
+const char Option8[OPT8NUM][10] = { 
 "Classic",
 "Casual",
 }; 
 #endif
-#define OPT8NUM 2
+#define OPT9NUM 2
 #ifdef FE6 
-extern const char Option8[OPT8NUM][16]; // do align 16 before each? 
+extern const char Option9[OPT9NUM][32]; // do align 16 before each? 
 #else 
-const char Option8[OPT8NUM][22] = { 
+const char Option9[OPT9NUM][22] = { 
 "Vanilla BGM",
 "Random BGM",
 }; 
 #endif
-#define OPT9NUM 4
+#define OPT10NUM 4
 #ifdef FE6 
-extern const char Option9[OPT9NUM][16]; // do align 16 before each? 
+extern const char Option10[OPT10NUM][32]; // do align 16 before each? 
 #else 
-const char Option9[OPT9NUM][22] = { 
+const char Option10[OPT10NUM][22] = { 
 "Vanilla Colours",
 "Random",
 "Janky",
 "Portraits only",
 }; 
 #endif
-#define OPT10NUM 2
+#define OPT11NUM 3
 #ifdef FE6 
-extern const char Option10[OPT10NUM][16]; // do align 16 before each? 
+extern const char Option11[OPT11NUM][48]; // do align 16 before each? 
 #else 
-const char Option10[OPT10NUM][10] = { // Item durability 
+const char Option11[OPT11NUM][20] = { // Item durability 
 "Vanilla",
-"Infinite",
-}; 
-#endif
-#define OPT11NUM 31
-#ifdef FE6 
-extern const char Option11[OPT11NUM][21]; // do align 16 before each? 
-#else 
-const char Option11[OPT11NUM][20] = { // players 
-"Vanilla",
-"+1 hidden level",
-"+2 hidden levels",
-"+3 hidden levels",
-"+4 hidden levels",
-"+5 hidden levels",
-"+6 hidden levels",
-"+7 hidden levels",
-"+8 hidden levels",
-"+9 hidden levels",
-"+10 hidden levels",
-"+11 hidden levels",
-"+12 hidden levels",
-"+13 hidden levels",
-"+14 hidden levels",
-"+15 hidden levels",
-"+16 hidden levels",
-"+17 hidden levels",
-"+18 hidden levels",
-"+19 hidden levels",
-"+20 hidden levels",
-"-10 hidden levels",
-"-9 hidden levels",
-"-8 hidden levels",
-"-7 hidden levels",
-"-6 hidden levels",
-"-5 hidden levels",
-"-4 hidden levels",
-"-3 hidden levels",
-"-2 hidden levels",
-"-1 hidden level",
+"Infinite weapons",
+"Infinite items",
 }; 
 #endif
 #define OPT12NUM 31
 #ifdef FE6 
-extern const char Option12[OPT12NUM][21]; // do align 16 before each? 
+extern const char Option12[OPT12NUM][42]; // do align 16 before each? 
 #else 
-const char Option12[OPT12NUM][20] = { // Enemies 
+const char Option12[OPT12NUM][20] = { // players 
+"Vanilla",
+"+1 hidden level",
+"+2 hidden levels",
+"+3 hidden levels",
+"+4 hidden levels",
+"+5 hidden levels",
+"+6 hidden levels",
+"+7 hidden levels",
+"+8 hidden levels",
+"+9 hidden levels",
+"+10 hidden levels",
+"+11 hidden levels",
+"+12 hidden levels",
+"+13 hidden levels",
+"+14 hidden levels",
+"+15 hidden levels",
+"+16 hidden levels",
+"+17 hidden levels",
+"+18 hidden levels",
+"+19 hidden levels",
+"+20 hidden levels",
+"-10 hidden levels",
+"-9 hidden levels",
+"-8 hidden levels",
+"-7 hidden levels",
+"-6 hidden levels",
+"-5 hidden levels",
+"-4 hidden levels",
+"-3 hidden levels",
+"-2 hidden levels",
+"-1 hidden level",
+}; 
+#endif
+#define OPT13NUM 31
+#ifdef FE6 
+extern const char Option13[OPT13NUM][42]; // do align 16 before each? 
+#else 
+const char Option13[OPT13NUM][20] = { // Enemies 
 "Vanilla",
 "+1 hidden level",
 "+2 hidden levels",
@@ -2718,8 +4136,42 @@ const char Option12[OPT12NUM][20] = { // Enemies
 }; 
 #endif
 
+#define OPT14NUM 3
+#ifdef FE6 
+extern const char Option14[OPT14NUM][32]; // do align 16 before each? 
+#else 
+const char Option14[OPT14NUM][11] = { 
+"Vanilla",
+"Always off",
+"Always on",
+}; 
+#endif 
+#define OPT15NUM 2
+#ifdef FE6 
+extern const char Option15[OPT15NUM][32]; // do align 16 before each? 
+#else 
+const char Option15[OPT15NUM][14] = { 
+"Vanilla",
+"Press A",
+}; 
+#endif 
+#define OPT16NUM 4 
+const char Option16[OPT16NUM][10] = { 
+"Off",
+"Easy",
+"Normal",
+"Hard",
+}; 
+#define OPT17NUM 4 
+const char Option17[OPT17NUM][10] = { 
+"Vanilla",
+"Random",
+"Fixed",
+"Random &",
+}; 
 
-const u8 OptionAmounts[] = { OPT0NUM, OPT1NUM, OPT2NUM, OPT3NUM, OPT4NUM, OPT5NUM, OPT6NUM, OPT7NUM, OPT8NUM, OPT9NUM, OPT10NUM, OPT11NUM, OPT12NUM, 0 }; 
+
+const u8 OptionAmounts[] = { OPT0NUM, OPT1NUM, OPT2NUM, OPT3NUM, OPT4NUM, OPT5NUM, OPT6NUM, OPT7NUM, OPT8NUM, OPT9NUM, OPT10NUM, OPT11NUM, OPT12NUM, OPT13NUM, OPT14NUM, OPT15NUM, OPT16NUM, OPT17NUM, 0 }; 
 
 #define MENU_X 18
 #define MENU_Y 8
@@ -2750,34 +4202,327 @@ extern void SetFontGlyphSet(int a); //8005410
 extern void InitSystemTextFont(void); // 8005A40
 extern void RegisterBlankTile(int a); 
 
-#ifdef FE6 
-void DecodeStringRam(char const * src, char * dst, int huffman); //800384c 
-extern char sMsgString[0x1000];
-char * PutStringInBuffer(const char * str)
-{
-	
-	// anti-huffman version? 
-	//for (int i = 0; i < 0x1000; ++i) { 
-    //    sMsgString[i] = str[i];
-	//	if (!str[i]) break; 
-	//}
-	
-	
-	DecodeStringRam(str, sMsgString, 0); // if int huffman is negative, don't use huffman encoding  
+struct ReplaceTextStruct { 
+	const char* find; 
+	const char* replace; 
+};  
+int CountBWLUnits(void) { 
+	const struct CharacterData* table = GetCharacterData(1); 
+	int c = 0; 
+	for (int i = 1; i <= 0x45; ++i) { 
+		if (table->portraitId) { c++; } 
+		table++;
+	} 
+	return c; 
+} 
 
+int DecompText(const char *a, char *b);
+extern const u8** *const ggMsgStringTable; // a2a0 is POIN TextTable
+char * GetStringFromIndexInBufferWithoutReplacing(int index, char *buffer)
+{
+    int size = DecompText((void*)ggMsgStringTable[index], buffer);
+	buffer[size] = 0; 
+	if (size > 100) { asm("mov r11, r11"); } 
+	if (size < 0) { asm("mov r11, r11"); } 
+    //SetMsgTerminator(buffer);
+    return buffer;
+}
+
+
+extern char * GetStringFromIndexInBuffer(int index, char *buffer); 
+
+extern const char NameStrings[ListSize][16]; // do align 16 before each? 
+
+/*
+inline int GetRandomUnitID(int ID, RecruitmentProc* proc) {
+	return proc->id[ID-1];  
+} 
+void InitReplaceTextListRom(struct ReplaceTextStruct list[]) { 
+	RecruitmentProc* proc = Proc_Find(RecruitmentProcCmd); 
+	if (!proc) { proc = Proc_Start(RecruitmentProcCmd, PROC_TREE_3); proc->count = 0;} 
+	if (!proc->count) { InitRandomRecruitmentProc(0);  } 
+	
+	//const struct CharacterData* table = GetCharacterData(1); 
+	int uid; 
+	for (int i = 0; i < MAX_CHAR_ID; ++i) { 
+		uid = GetRandomUnitID(i+1, proc); 
+		list[i].find = NameStrings[i]; 
+		list[i].replace = NameStrings[uid-1]; 
+		//table++; 
+	} 
+	list[ListSize].find = NULL; 
+	//asm("mov r11, r11");
+	//list[ListSize].replace = NULL; 
+} 
+*/
+
+void InitReplaceTextListAntiHuffman(struct ReplaceTextStruct list[]) { 
+	const struct CharacterData* table = GetCharacterData(1); 
+	const struct CharacterData* table2 = GetCharacterData(1); 
+	//u32 rn[1] = {0}; 
+	int c = 0; 
+	table--; 
+	for (int i = 0; i < MAX_CHAR_ID; ++i) { 
+	// remove the 0x8------- from anti-huffman uncompressed text pointer 
+		table++; 
+		table2 = GetReorderedCharacter(table); 
+		if (table->nameTextId == table2->nameTextId) { 
+			continue; 
+		} 
+		if (c >= ListSize) { break; } 
+		list[c].find = (void*)((int)ggMsgStringTable[table->nameTextId] & 0x7FFFFFFF); 
+		list[c].replace = (void*)((int)ggMsgStringTable[table2->nameTextId] & 0x7FFFFFFF); 
+		c++; 
+	} 
+	//c++; 
+	list[c].find = NULL; 
+	//list[ListSize].replace = NULL; 
+} 
+
+// would need to be buffered: it's too slow 
+void InitReplaceTextList(struct ReplaceTextStruct list[], char buffer[][TempTextBufferSize], char buffer2[][TempTextBufferSize]) { 
+	//int size = CountBWLUnits(); 
+	//int noise[4] = {0, 0, 0, 0}; 
+	const struct CharacterData* table = GetCharacterData(1); 
+	//u32 rn[1] = {0}; 
+	int seed = RandValues->seed; 
+
+	for (int i = 0; i < MAX_CHAR_ID; ++i) { 
+		if (i >= ListSize) { break; } 
+		list[i].find = GetStringFromIndexInBufferWithoutReplacing(table->nameTextId, &buffer[i][0]); 
+		list[i].replace = GetStringFromIndexInBufferWithoutReplacing(GetNameTextIdOfRandomizedPortrait(table->portraitId, seed), &buffer2[i][0]); 
+		table++; 
+	} 
+	list[ListSize].find = NULL; 
+	//list[ListSize].replace = NULL; 
+} 
+//extern struct ReplaceTextStruct ReplaceTextList[]; 
+extern char sMsgString[0x1000]; // fe7 202A5B4 
+extern u32 u32MsgString[0x400]; 
+extern void SetMsgTerminator(char * str); 
+extern int Arm_DecompText(const char *, char*, u32 addr); 
+extern void (*gARM_DecompText)(const char *, char *); // fe8 3004150 fe7 3003940 fe6 3003780
+extern void CallARM_DecompText(const char *a, char *b);
+#define UseHuffmanEncoding 0
+#ifdef FE6 
+char * PutStringInBuffer(const char * str, int huffman)
+{
+	if (!huffman) { 
+		str = (const char*) ((int)str | 0x80000000); 
+	} 
+	CallARM_DecompText(str, sMsgString); // if int huffman is negative, don't use huffman encoding  
     return sMsgString;
 }
 #else 
-const char * PutStringInBuffer(const char * str) { return str; }
+const char * PutStringInBuffer(const char * str, int huffman) { return str; }
+#endif 
+
+
+int GetStringLength(const char* str) { 
+	for (int i = 0; i < 255; ++i) { 
+		if (!str[i]) return i; 
+	} 
+	return 0; 
+
+} 
+int GetEndOfBuffer(char* buffer) { 
+	for (int i = 0; i < 0x1000; ++i) { 
+		if (!buffer[i]) { return i; } 
+	} 
+	return 0; 
+
+} 
+void ShiftDataInBuffer(char *buffer, int amount, int offset, int usedBufferLength[]) { 
+	if (!amount) { return; } 
+	//int length = GetEndOfBuffer(buffer); 
+	int length = usedBufferLength[0]; 
+	
+	int i; 
+	if (amount < 0) { 
+		amount = ABS(amount); 
+		for (i = offset; i < length; ++i) { 
+			buffer[i] = buffer[i + amount]; 
+		} 
+	} 
+	else { 
+		for (i = length; i >= offset; --i) { 
+			buffer[i+amount] = buffer[i]; 
+		} 
+	
+	} 
+	usedBufferLength[0] = length + amount; 
+
+} 
+
+int ReplaceIfMatching(int usedBufferLength[], const char* find, const char* replace, int c, char *b) { 
+	int i; 
+	char* buffer = &b[c]; 
+	
+	// could string be in the next 4 bytes? 
+	//if (!(c & 3)) { //4 aligned, as the buffers all start 4 aligned 
+	//	u32 search = find[0]; 
+	//	u32 data = b[c] | (b[c+1]<<8) | (b[c+2]<<16) | (b[c+3]<<24);
+	//	if (((data&0xFF) != search) && (((data&0xFF00)>>8) != search) && (((data&0xFF0000)>>16) != search) && (((data)>>24) != search)  ) { 
+	//	return c+4; 
+	//	} 
+	//} 
+	
+
+	for (i = 0; i < 255; ++i) { 
+		if (!find[i]) { break; } 
+		if (buffer[i] != find[i]) { return false; }
+	} 
+	
+	int len2 = GetStringLength(replace); 
+	ShiftDataInBuffer(b, len2-i, c, usedBufferLength); 
+	
+	for (i = 0; i < len2; ++i) { 
+		buffer[i] = replace[i]; 
+	} 
+	return true; 
+
+}  
+
+#ifdef FE8 
+#define TextBufferSize 0x555 
+#else 
+#define TextBufferSize 0x1000
+#endif 
+int DecompText(const char *a, char *b) { 
+	int length = 0; 
+	if ((int)a & 0x80000000) { // anti huffman 
+		a = (const char*) ((int)a & 0x7FFFFFFF); 
+		for (int i = 0; i < TextBufferSize; ++i) { 
+			b[i] = a[i];
+			if (!a[i]) { 
+			length = i; 
+			break; }  
+		} 
+	} 
+	else { 
+		#ifdef FE8 
+		length = Arm_DecompText(a, b, 0x3004150);
+		#endif 
+		#ifdef FE7 
+		length = Arm_DecompText(a, b, 0x3003940); 
+		#endif 
+		#ifdef FE6
+		length = Arm_DecompText(a, b, 0x3003780);
+		#endif 
+	} 
+	#ifdef FE8 
+	//SetMsgTerminator(b); 
+	#endif 
+	if (length < 0xFFF) {
+		b[length] = 0; 
+		b[length+1] = 0; 
+	} 
+	return length; 
+
+
+} 
+
+void CallARM_DecompText(const char *a, char *b) // 2ba4 // fe7 8004364 fe6 800384C 
+{
+	//asm("mov r11, r11"); 
+	int length[1] = {0}; 
+	length[0] = DecompText(a, b); 
+	if (!ShouldRandomizeRecruitment()) { return; }
+	if (RecruitValues->pauseNameReplace) { return; } 
+	struct ReplaceTextStruct ReplaceTextList[ListSize+1]; // +1 for terminator 
+	#ifdef SET_TEXT_USED
+	InitReplaceTextListAntiHuffman(ReplaceTextList); 
+	#endif 
+	
+	#ifdef STRINGS_IN_ROM 
+	InitReplaceTextListRom(ReplaceTextList); 
+	#endif 
+	#ifndef SET_TEXT_USED 
+		#ifndef STRINGS_IN_ROM 
+		char textBuffer[ListSize+1][TempTextBufferSize]; 
+		char textBuffer2[ListSize+1][TempTextBufferSize]; 
+		InitReplaceTextList(ReplaceTextList, textBuffer, textBuffer2); 
+		#endif 
+	#endif 
+	
+
+	for (int i = 0; i < TextBufferSize; ++i) { 
+		if (!b[i]) { return; } 
+		for (int c = 0; c < ListSize; ++c) { 
+			if (!b[i]) { return; } 
+			if (!ReplaceTextList[c].find) { break; } 
+			if (ReplaceIfMatching(length, ReplaceTextList[c].find, ReplaceTextList[c].replace, i, b)) { break; };
+			
+		}
+	} 
+ 
+	
+}
+
+
+
+#ifdef FE8 
+#define SKILL_ICON(aSkillId) ((1 << 8) + (aSkillId))
+extern const u16 SkillDescTable[];
+int IsSkill(int skillId)
+{
+    if (skillId == 0)
+        return FALSE;
+
+    if (skillId == 255)
+        return FALSE;
+
+    return !!SkillDescTable[skillId];
+}
+char* GetSkillName(int skillId)
+{
+    char* desc = GetStringFromIndex(SkillDescTable[skillId]);
+
+    for (char* it = desc; *it; ++it)
+    {
+        if (*it == ':')
+        {
+            *it = 0;
+            break;
+        }
+    }
+
+    return desc;
+}
+
+char* GetCombinedString(const char* a, char* b, char* c) { 
+	int i = 0; 
+	for (i = 0; i < 0x1000; ++i) { 
+		if (!a[i]) { break; } 
+		c[i] = a[i]; 
+	}
+	c[i] = *" "; 
+	i++; 
+
+	for (int d = 0; d<0x1000; ++d) { 
+		c[i+d] = b[d]; 
+		if (!b[d]) { break; } 
+	}
+	return c; 
+} 
+
+
+
+
+
+
 #endif 
 
 extern void TileMap_FillRect(u16 *dest, int width, int height, int fillValue); // 80C57BC
-#define Y_HAND 17
+#define Y_HAND 3
 #define NUMBER_X 20
+extern void DrawIcon(u16* BgOut, int IconIndex, int OamPalBase); 
+extern int DisplayRandomSkillsOption; 
+extern int DisplayTimedHitsOption; 
 const int SRR_MAXDISP = 7;
-const int SRR_TotalOptions = 13;
-const u8 tWidths[] = { 3, 5, 6, 5, 6, 6, 3, 3, 3, 5, 6, 10, 10, 10};   
-const u8 RtWidths[] = { 0, 4, 5, 9, 8, 6, 11, 14, 12, 7, 8, 6, 12, 12 } ; 
+extern const int SRR_TotalOptions;
+const u8 tWidths[] = { 3, 5, 7, 6, 5, 6, 6, 3, 3, 3, 3, 4, 8, 7, 10, 2, 7, 6, 4};   
+const u8 RtWidths[] = { 0, 4, 15, 5, 5, 8, 6, 11, 13, 4, 7, 8, 9, 10, 10, 6, 5, 5, 17 } ; 
 void DrawConfigMenu(ConfigMenuProc* proc) { 
 	//return;
 	//BG_EnableSyncByMask(BG0_SYNC_BIT); 
@@ -2812,32 +4557,58 @@ Max Growth: 100
 	switch (offset) { 
 	case 0: TileMap_FillRect(TILEMAP_LOCATED(gBG0TilemapBuffer, NUMBER_X-6, Y_HAND), 9, 2, 0); // seed first 
 	PutNumber(TILEMAP_LOCATED(gBG0TilemapBuffer, NUMBER_X-1, 3+((i)*2)), white, proc->seed); i++; 
-	case 1: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option0[proc->Option[0]])); i++;  
+	case 1: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option0[proc->Option[0]], UseHuffmanEncoding)); i++;  
 	if (i > SRR_MAXDISP) { break; } 
-	case 2: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option1[proc->Option[1]])); i++; 
+	case 2: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option1[proc->Option[1]], UseHuffmanEncoding)); i++; 
 	if (i > SRR_MAXDISP) { break; } 
-	case 3: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option2[proc->Option[2]])); i++; 
+	case 3: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option2[proc->Option[2]], UseHuffmanEncoding)); i++; 
 	if (i > SRR_MAXDISP) { break; } 
-	case 4: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option3[proc->Option[3]])); i++; 
+	case 4: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option3[proc->Option[3]], UseHuffmanEncoding)); i++; 
 	if (i > SRR_MAXDISP) { break; } 
-	case 5: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option4[proc->Option[4]])); i++; 
+	case 5: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option4[proc->Option[4]], UseHuffmanEncoding)); i++; 
 	if (i > SRR_MAXDISP) { break; } 
-	case 6: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option5[proc->Option[5]])); i++; 
+	case 6: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option5[proc->Option[5]], UseHuffmanEncoding)); i++; 
 	if (i > SRR_MAXDISP) { break; } 
-	case 7: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option6[proc->Option[6]])); i++; 
+	case 7: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option6[proc->Option[6]], UseHuffmanEncoding)); i++; 
 	if (i > SRR_MAXDISP) { break; } 	
-	case 8: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option7[proc->Option[7]])); i++;  
+	case 8: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option7[proc->Option[7]], UseHuffmanEncoding)); i++;  
 	if (i > SRR_MAXDISP) { break; } 
-	case 9: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option8[proc->Option[8]])); i++;  
+	case 9: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option8[proc->Option[8]], UseHuffmanEncoding)); i++;  
 	if (i > SRR_MAXDISP) { break; } 
-	case 10: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option9[proc->Option[9]])); i++;  
+	case 10: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option9[proc->Option[9]], UseHuffmanEncoding)); i++;  
 	if (i > SRR_MAXDISP) { break; } 
-	case 11: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option10[proc->Option[10]])); i++;  
+	case 11: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option10[proc->Option[10]], UseHuffmanEncoding)); i++;  
 	if (i > SRR_MAXDISP) { break; } 
-	case 12: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option11[proc->Option[11]])); i++;  
+	case 12: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option11[proc->Option[11]], UseHuffmanEncoding)); i++;  
 	if (i > SRR_MAXDISP) { break; } 
-	case 13: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option12[proc->Option[12]])); i++;  
+	case 13: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option12[proc->Option[12]], UseHuffmanEncoding)); i++;  
 	if (i > SRR_MAXDISP) { break; } 
+	case 14: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option13[proc->Option[13]], UseHuffmanEncoding)); i++;  
+	if (i > SRR_MAXDISP) { break; } 
+	case 15: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option14[proc->Option[14]], UseHuffmanEncoding)); i++;  
+	if (i > SRR_MAXDISP) { break; } 
+	case 16: PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option15[proc->Option[15]], UseHuffmanEncoding)); i++;  
+	if (i > SRR_MAXDISP) { break; } 
+	#ifdef FE8 
+	case 17: { if (DisplayTimedHitsOption) { PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option16[proc->Option[16]], UseHuffmanEncoding)); i++;  
+		if (i > SRR_MAXDISP) { break; } 
+	} } 
+	case 18: { if (DisplayRandomSkillsOption) { 
+		if ((proc->Option[17] != 3) || (!IsSkill(proc->skill))) {
+		PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], PutStringInBuffer(Option17[proc->Option[17]], UseHuffmanEncoding)); i++; 
+		} 
+		else { 
+		char string[30]; 
+		PutDrawText(&th[i+offset+hOff], TILEMAP_LOCATED(gBG0TilemapBuffer, 14, 3+((i)*2)), white, 0, RtWidths[i+offset], GetCombinedString(Option17[proc->Option[17]], GetSkillName(proc->skill), string)); i++; 
+			//DrawIcon(
+				//gBG0TilemapBuffer + TILEMAP_INDEX(18, 3+((i)*2)),
+				//SKILL_ICON(proc->skill), TILEREF(0, 4));
+		}
+		if (i > SRR_MAXDISP) { break; } 
+	} } 
+
+
+	#endif 
 	default: 
 	} 
 	//BG_EnableSyncByMask(BG0_SYNC_BIT); return;
@@ -2870,15 +4641,15 @@ void DisplayHand(int x, int y, int type) {
 
 
 LocationTable CursorLocationTable[] = {
-  {(NUMBER_X*8) - (0 * 8) - 4, Y_HAND},
-  {(NUMBER_X*8) - (1 * 8) - 4, Y_HAND},
-  {(NUMBER_X*8) - (2 * 8) - 4, Y_HAND},
-  {(NUMBER_X*8) - (3 * 8) - 4, Y_HAND},
-  {(NUMBER_X*8) - (4 * 8) - 4, Y_HAND},
-  {(NUMBER_X*8) - (5 * 8) - 4, Y_HAND},
-  {(NUMBER_X*8) - (6 * 8) - 4, Y_HAND}, 
-  {(NUMBER_X*8) - (7 * 8) - 4, Y_HAND}, 
-  {(NUMBER_X*8) - (8 * 8) - 4, Y_HAND}, 
+  {(NUMBER_X*8) - (0 * 8) - 4, (Y_HAND*8)-8},
+  {(NUMBER_X*8) - (1 * 8) - 4, (Y_HAND*8)-8},
+  {(NUMBER_X*8) - (2 * 8) - 4, (Y_HAND*8)-8},
+  {(NUMBER_X*8) - (3 * 8) - 4, (Y_HAND*8)-8},
+  {(NUMBER_X*8) - (4 * 8) - 4, (Y_HAND*8)-8},
+  {(NUMBER_X*8) - (5 * 8) - 4, (Y_HAND*8)-8},
+  {(NUMBER_X*8) - (6 * 8) - 4, (Y_HAND*8)-8}, 
+  {(NUMBER_X*8) - (7 * 8) - 4, (Y_HAND*8)-8}, 
+  {(NUMBER_X*8) - (8 * 8) - 4, (Y_HAND*8)-8}, 
 };
 
 const u32 DigitDecimalTable[] = { 
@@ -2929,8 +4700,67 @@ void DisplayVertUiHand(int x, int y)
 }
 extern void m4aSongNumStart(u16 n); 
 
+extern struct Unit* LoadUnit(const struct UnitDefinition* uDef); // 17788 17598
+extern void ClearUnit(struct Unit* unit); // 17508 17394
+void InitUnitDef(struct UnitDefinition* uDef, struct Unit* unit) { 
+
+    uDef->charIndex = unit->pCharacterData->number;
+    uDef->classIndex = unit->pCharacterData->defaultClass;
+    uDef->leaderCharIndex = unit->supports[UNIT_SUPPORT_MAX_COUNT-1];
+    uDef->autolevel = true; 
+	uDef->allegiance = UNIT_FACTION(unit)>>6; 
+    uDef->level = unit->pCharacterData->baseLevel; 
+    uDef->xPosition = unit->xPos; 
+    uDef->yPosition = unit->yPos; 
+#ifndef FE8 
+	uDef->xMove = unit->xPos; 
+	uDef->yMove = unit->yPos; 
+#endif 
+
+#ifdef FE8 
+	uDef->genMonster = false; 
+	uDef->itemDrop = (unit->state & US_DROP_ITEM) != 0; 
+	uDef->sumFlag = 0; 
+	uDef->unk_05_7 = 0; 
+	uDef->extraData = 0; 
+	uDef->redaCount = 0; 
+	uDef->redas = NULL; 
+#endif 
+	uDef->items[0] = unit->items[0]; 
+	uDef->items[1] = unit->items[1]; 
+	uDef->items[2] = unit->items[2]; 
+	uDef->items[3] = unit->items[3]; 
+	uDef->ai[0] = unit->ai1;
+	uDef->ai[1] = unit->ai2;
+	uDef->ai[2] = unit->ai3And4 & 0xFF;
+	uDef->ai[3] = (unit->ai3And4>>8);
+} 
+
+void ReloadAllUnits(ConfigMenuProc* proc) { 
+	if (!((proc->calledFromChapter) && (proc->reloadUnits))) { 
+		return; 
+	}
+	struct UnitDefinition uDef; 
+	struct Unit* unit; 
+	u32 state; 
+	for (int i = 1; i<0xC0; ++i) { 
+		unit = GetUnit(i); 
+		if (!UNIT_IS_VALID(unit)) { continue; } 
+		state = unit->state; 
+		InitUnitDef(&uDef, unit); 
+		ClearUnit(unit); 
+		LoadUnit(&uDef); 
+		unit->state = state; 
+	} 
+} 
+
+
+extern int NumberOfSkills; 
 extern void DisplayUiVArrow(int, int, u16, int);
 extern void UnpackUiVArrowGfx(int, int);
+extern void CallEndEvent(void); // (806b5b0) 8079A38 8083280
+extern void CallEndEvent_FE6(void); 
+extern void UpdateMapViewWithFog(int level); //801C6C4 801DB58
 enum { 
 RedrawNone, RedrawSome, RedrawAll }; 
 void ConfigMenuLoop(ConfigMenuProc* proc) { 
@@ -2951,30 +4781,113 @@ void ConfigMenuLoop(ConfigMenuProc* proc) {
 
 	if ((keys & START_BUTTON)||(keys & A_BUTTON)) { //press A or Start to continue
 
+		// see if anything changed 
+		int reloadUnits = false; 
+		if (RandValues->seed != proc->seed) { reloadUnits = true; } 
+		if (RandValues->variance != proc->Option[0]) { reloadUnits = true; } 
+		if (RecruitValues->recruitment != proc->Option[1]) { reloadUnits = true; } 
+		if (RandBitflags->base != proc->Option[2]) { reloadUnits = true; } 
+		if (RandBitflags->growth != proc->Option[3]) { reloadUnits = true; } 
+		if (RandBitflags->levelups != proc->Option[4]) { reloadUnits = true; } 
+		if (RandBitflags->caps != proc->Option[5]) { reloadUnits = true; } 
+		if (RandBitflags->class != proc->Option[6]) { reloadUnits = true; } 
+		if (RandBitflags->playerBonus != proc->Option[12]) { reloadUnits = true; } 
+		if (RandValues->bonus != proc->Option[13]) { reloadUnits = true; } 
+		if (DisplayRandomSkillsOption) {
+			if (RandValues->skills != proc->Option[17]) { reloadUnits = true; } 
+		}
+		
 		RandValues->seed = proc->seed; 
 		RandValues->variance = proc->Option[0];
-		
-		RandBitflags->base = proc->Option[1]; 
-		RandBitflags->growth = proc->Option[2];
-		RandBitflags->levelups = proc->Option[3]; 
-		RandBitflags->caps = proc->Option[4]; 
-		RandBitflags->class = proc->Option[5]; 
-		RandBitflags->itemStats = ((proc->Option[6] == 1) || (proc->Option[6] == 3)); 
-		RandBitflags->foundItems = ((proc->Option[6] == 1) || (proc->Option[6] == 2)); 
-		RandBitflags->shopItems = ((proc->Option[6] == 1) || (proc->Option[6] == 2)); 
-		if (proc->Option[7] == 1){ SetFlag(CasualModeFlag); } 
+		RecruitValues->recruitment = proc->Option[1]; 
+		RecruitValues->pauseNameReplace = false; 
+		RandBitflags->base = proc->Option[2]; 
+		RandBitflags->growth = proc->Option[3];
+		if (proc->Option[3] > 3) { RandBitflags->grow50 = true; } 
+		else { RandBitflags->grow50 = false; }
+		RandBitflags->levelups = proc->Option[4]; 
+		RandBitflags->caps = proc->Option[5]; 
+		RandBitflags->class = proc->Option[6]; 
+		RandBitflags->itemStats = ((proc->Option[7] == 1) || (proc->Option[7] == 3)); 
+		RandBitflags->foundItems = ((proc->Option[7] == 1) || (proc->Option[7] == 2)); 
+		RandBitflags->shopItems = ((proc->Option[7] == 1) || (proc->Option[7] == 2)); 
+		if (proc->Option[8] == 1){ SetFlag(CasualModeFlag); } 
 		else { UnsetFlag(CasualModeFlag); } 
 		
-		RandBitflags->randMusic = proc->Option[8]; 
-		RandBitflags->colours = proc->Option[9]; 
-		RandBitflags->itemDur = proc->Option[10]; 
-		RandBitflags->playerBonus = proc->Option[11]; 
-		RandValues->bonus = proc->Option[12];
+		RandBitflags->randMusic = proc->Option[9]; 
+		RandBitflags->colours = proc->Option[10]; 
+		RandBitflags->itemDur = proc->Option[11]; 
+		RandBitflags->playerBonus = proc->Option[12]; 
+		RandValues->bonus = proc->Option[13];
 		
+		if (DisplayRandomSkillsOption) {
+			RandValues->skills = proc->Option[17]; 
+			AlwaysSkill[0] = proc->skill; 
+		}
+		#ifdef FE8 
+		if (DisplayTimedHitsOption) { 
+			int timedHits = proc->Option[16];
+			TimedHitsDifficultyRam->off = false;
+			TimedHitsDifficultyRam->alwaysA = false;
+			TimedHitsDifficultyRam->difficulty = 0; 
+			if (timedHits == 0) { TimedHitsDifficultyRam->off = true; }  
+			if (timedHits == 1) { TimedHitsDifficultyRam->alwaysA = true; }  
+			if (timedHits == 2) { TimedHitsDifficultyRam->difficulty = 2; }  
+			if (timedHits == 3) { TimedHitsDifficultyRam->difficulty = 3; }  
+		}
+		#endif 
+		
+		if (RandBitflags->fog != proc->Option[14]) { 
+			if ((proc->Option[14] == 1) && proc->calledFromChapter) { 
+				UpdateMapViewWithFog(0); 
+			} 
+			if ((proc->Option[14] == 2) && proc->calledFromChapter) { 
+				UpdateMapViewWithFog(3); 
+			} 
+			if ((proc->Option[14] == 0) && proc->calledFromChapter) { 
+				UpdateMapViewWithFog(-1); 
+			} 
+		} 
+		RandBitflags->fog = proc->Option[14]; 
+		
+		RecruitmentProc* recruitmentProc = Proc_Find(RecruitmentProcCmd1); 
+		if (recruitmentProc) { Proc_Break(recruitmentProc); } 
+		recruitmentProc = Proc_Find(RecruitmentProcCmd2); 
+		if (recruitmentProc) { Proc_Break(recruitmentProc); } 
+		recruitmentProc = Proc_Find(RecruitmentProcCmd3); 
+		if (recruitmentProc) { Proc_Break(recruitmentProc); } 
+		recruitmentProc = Proc_Find(RecruitmentProcCmd4); 
+		if (recruitmentProc) { Proc_Break(recruitmentProc); } 
+		
+		#ifdef FE8 
+		if (proc->Option[15] && ((id + offset) == (SRR_TotalOptions-2))) { 
+		#else 
+		if (proc->Option[15] && ((id + offset) == (SRR_TotalOptions))) { 
+		#endif 
+			if (proc->calledFromChapter) { 
+			// clear MU, refresh fog, update gfx, sms update 
+			// 6CCB8 8019ABC 8019504 8025724
+			#ifdef FE6 
+			CallEndEvent_FE6();
+			#else 
+			CallEndEvent();
+			#endif 
+			} 
+		} // win chapter 
+	
 
 		RandBitflags->disp = 1; 
 		
+		// fe6 temporarily shows wrong char name sometimes without this 
+		struct Text* th = gStatScreen.text; // max 34 
+		for (int i = 0; i < 36; ++i) { 
+			ClearText(&th[i]);
+		}	
+		
+		if (reloadUnits) { proc->reloadUnits = true; } 
+		
 		Proc_Break((ProcPtr)proc);
+		return; 
 		//BG_SetPosition(BG_3, 0, 0); 
 		//gLCDControlBuffer.dispcnt.bg3_on = 1; // don't display bg3 
 		//gLCDControlBuffer.dispcnt.bg0_on = 0; // don't display bg3 
@@ -2985,6 +4898,7 @@ void ConfigMenuLoop(ConfigMenuProc* proc) {
 	if (!keys) { keys = sKeyStatusBuffer.repeatedKeys; } 
 	
 	// Handle seed 
+	
 	if ((id == 0) && (offset == 0)) { 
 		//if (proc->digit == 9) { 
 		if (!proc->freezeSeed) { proc->seed = GetInitialSeed(0); proc->redraw = RedrawSome; }
@@ -3032,7 +4946,41 @@ void ConfigMenuLoop(ConfigMenuProc* proc) {
 	} 
 	//
 	
-	
+	if (((id+offset) == SRR_TotalOptions) && (proc->Option[17] == 3) && (proc->choosingSkill)) { 
+
+		if (keys & DPAD_UP) {
+			proc->skill = GetNextAlwaysSkill(proc->skill); 
+			proc->redraw = RedrawSome;
+		}
+		else if (keys & DPAD_DOWN) {
+			proc->skill = GetPreviousAlwaysSkill(proc->skill); 
+			proc->redraw = RedrawSome;
+		}
+		else if (keys & DPAD_RIGHT) {
+			proc->choosingSkill = false; 
+			//id--; id += offset; 
+			//if (proc->Option[id] < (OptionAmounts[id]-1)) { proc->Option[id]++; } 
+			//else { proc->Option[id] = 0;  } 
+			//proc->redraw = RedrawSome; id++; id -= offset; 
+		}
+		else if (keys & DPAD_LEFT) {
+			proc->choosingSkill = false; 
+			//id--; id += offset; 
+			//if (proc->Option[id] > 0) { proc->Option[id]--; } 
+			//else { proc->Option[id] = OptionAmounts[id] - 1;  } 
+			//proc->redraw = RedrawSome; id++; id -= offset; 
+		}
+		if (proc->choosingSkill) { 
+		DisplayHand(CursorLocationTable[proc->digit].x+12, CursorLocationTable[proc->digit].y + (offset * 8) + 32, true); 
+		} 	
+		if (!proc->freezeSeed) { proc->seed = GetInitialSeed(0); proc->redraw = RedrawSome; }
+		proc->freezeSeed = true; 	
+		if (proc->redraw == RedrawSome) { 
+			proc->redraw = RedrawNone; 
+			DrawConfigMenu(proc); 
+		} 
+		return;		
+	} 
 	
     if (keys & DPAD_DOWN) {
 		if (id < SRR_MAXDISP) { proc->id++; } 
@@ -3062,6 +5010,7 @@ void ConfigMenuLoop(ConfigMenuProc* proc) {
 	}
 	DisplayHand(SRR_CursorLocationTable[id].x, SRR_CursorLocationTable[id].y, 0); 	
 	if (proc->redraw == RedrawSome) { 
+		if (((id+offset) == SRR_TotalOptions) && (proc->Option[17] == 3)) { proc->choosingSkill = true; } 
 		proc->redraw = RedrawNone; 
 		DrawConfigMenu(proc); 
 	} 
@@ -3076,6 +5025,7 @@ void ConfigMenuLoop(ConfigMenuProc* proc) {
 #ifdef FE6
 extern const char SeedText;
 extern const char VarianceText;
+extern const char CharactersText;
 extern const char BaseStatsText;
 extern const char GrowthsText;
 extern const char LevelupsText;
@@ -3088,10 +5038,13 @@ extern const char ColoursText;
 extern const char ItemDurabilityText;
 extern const char PlayerBonusText;
 extern const char EnemyDiffBonusText;
+extern const char FogText;
+extern const char SkipChapterText;
 extern const char RandomizerText;
 #else 
 const char SeedText[] = { "Seed" };
 const char VarianceText[] = { "Variance" };
+const char CharactersText[] = { "Characters" };
 const char BaseStatsText[] = { "Base Stats" };
 const char GrowthsText[] = { "Growths" };
 const char LevelupsText[] = { "Levelups" };
@@ -3104,6 +5057,10 @@ const char ColoursText[] = { "Colours" };
 const char ItemDurabilityText[] = { "Item Durability" };
 const char PlayerBonusText[] = { "Player Bonus" };
 const char EnemyDiffBonusText[] = { "Enemy Diff. Bonus" };
+const char FogText[] = { "Fog" };
+const char SkipChapterText[] = { "Skip chapter" };
+const char SkillsText[] = { "Skills" };
+const char TimedHitsText[] = { "Timed Hits" };
 const char RandomizerText[] = { "Randomizer" };
 #endif 
 
@@ -3120,38 +5077,55 @@ void RedrawAllText(ConfigMenuProc* proc) {
 	//PutDrawText(&th[0], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3), gold, 0, tWidths[0], PutStringInBuffer(&VarianceText, 0));  
 	i = 0; 
 	switch (offset) { 
-		case 0: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&SeedText)); i++;  // Classic/Casual 
+		case 0: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&SeedText, false)); i++;  // Classic/Casual 
 		if (i > SRR_MAXDISP) { break; } 
-		case 1: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&VarianceText)); i++; 
+		case 1: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&VarianceText, false)); i++; 
 		if (i > SRR_MAXDISP) { break; } 
-		case 2: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&BaseStatsText)); i++; 
+		case 2: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&CharactersText, false)); i++; 
 		if (i > SRR_MAXDISP) { break; } 
-		case 3: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&GrowthsText)); i++; 
+		case 3: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&BaseStatsText, false)); i++; 
 		if (i > SRR_MAXDISP) { break; } 
-		case 4: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&LevelupsText)); i++; 
+		case 4: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&GrowthsText, false)); i++; 
 		if (i > SRR_MAXDISP) { break; } 
-		case 5: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&StatCapsText)); i++; 
+		case 5: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&LevelupsText, false)); i++; 
 		if (i > SRR_MAXDISP) { break; } 
-		case 6: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ClassText)); i++; 
+		case 6: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&StatCapsText, false)); i++; 
 		if (i > SRR_MAXDISP) { break; } 
-		case 7: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ItemsText)); i++;  
+		case 7: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ClassText, false)); i++; 
 		if (i > SRR_MAXDISP) { break; } 
-		case 8: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ModeText)); i++;  // Classic/Casual 
+		case 8: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ItemsText, false)); i++;  
 		if (i > SRR_MAXDISP) { break; } 
-		case 9: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&MusicText)); i++; 
+		case 9: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ModeText, false)); i++;  // Classic/Casual 
 		if (i > SRR_MAXDISP) { break; } 
-		case 10: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ColoursText)); i++;  
+		case 10: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&MusicText, false)); i++; 
 		if (i > SRR_MAXDISP) { break; } 
-		case 11: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ItemDurabilityText)); i++;  
+		case 11: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ColoursText, false)); i++;  
 		if (i > SRR_MAXDISP) { break; } 
-		case 12: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&PlayerBonusText)); i++;  // make players have bonus levels
+		case 12: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&ItemDurabilityText, false)); i++;  
 		if (i > SRR_MAXDISP) { break; } 
-		case 13: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&EnemyDiffBonusText)); i++;  // make enemies have more bonus levels?
+		case 13: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&PlayerBonusText, false)); i++;  // make players have bonus levels
 		if (i > SRR_MAXDISP) { break; } 
+		case 14: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&EnemyDiffBonusText, false)); i++;  // make enemies have more bonus levels?
+		if (i > SRR_MAXDISP) { break; } 
+		case 15: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&FogText, false)); i++;  
+		if (i > SRR_MAXDISP) { break; } 
+		case 16: PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&SkipChapterText, false)); i++;  
+		if (i > SRR_MAXDISP) { break; } 
+		#ifdef FE8 
+		case 17: { if (DisplayTimedHitsOption) { 
+			PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&TimedHitsText, false)); i++;  
+			if (i > SRR_MAXDISP) { break; } 
+		} } 
+		case 18: { if (DisplayRandomSkillsOption) { 
+			PutDrawText(&th[i+offset], TILEMAP_LOCATED(gBG0TilemapBuffer, 3, 3+((i)*2)), gold, 0, tWidths[i+offset], PutStringInBuffer((const char*)&SkillsText, false)); i++;  
+			if (i > SRR_MAXDISP) { break; } 
+		} } 
+		#endif 
 		default: 
 	}
+	
 	DrawConfigMenu(proc);
-	PutDrawText(&th[sizeof(tWidths) + sizeof(RtWidths)], TILEMAP_LOCATED(gBG0TilemapBuffer, 9, 0), green, 0, 6, PutStringInBuffer((const char*)&RandomizerText)); 
+	PutDrawText(&th[sizeof(tWidths) + sizeof(RtWidths)], TILEMAP_LOCATED(gBG0TilemapBuffer, 9, 0), green, 0, 6, PutStringInBuffer((const char*)&RandomizerText, false)); 
 	
 	BG_EnableSyncByMask(BG0_SYNC_BIT);
 	
@@ -3257,13 +5231,14 @@ void InitDraw(ConfigMenuProc* proc) {
  
 extern void StartGreenText(ProcPtr parent);
 ConfigMenuProc* StartConfigMenu(ProcPtr parent) { 
+	RecruitValues->pauseNameReplace = true; 
 	ConfigMenuProc* proc; 
 	if (parent) { proc = (ConfigMenuProc*)Proc_StartBlocking((ProcPtr)&ConfigMenuProcCmd, parent); } 
 	else { proc = (ConfigMenuProc*)Proc_Start((ProcPtr)&ConfigMenuProcCmd, PROC_TREE_3); } 
 	if (proc) { 
 		for (int i = 0; i < 20; i++) { 
 		proc->Option[i] = 0; } 
-		
+		proc->reloadUnits = false; 
 		if (!DefaultConfigToVanilla) {
 		proc->Option[0] = OptionAmounts[0]-1; // start on 100% 
 		proc->Option[1] = 1; 
@@ -3272,19 +5247,32 @@ ConfigMenuProc* StartConfigMenu(ProcPtr parent) {
 		proc->Option[4] = 1; 
 		proc->Option[5] = 1; 
 		proc->Option[6] = 1; 
-		//proc->Option[7] = 0; // Classic 
-		proc->Option[8] = 1; // Random BGM 
-		proc->Option[9] = 1; // Random Colours 
+		proc->Option[7] = 1; 
+		//proc->Option[8] = 0; // Classic 
+		proc->Option[9] = 1; // Random BGM 
+		proc->Option[10] = 1; // Random Colours 
 		}
 		proc->id = 1; 
 		proc->calledFromChapter = false; 
 		proc->offset = 0; 
 		proc->redraw = 0; 
+		proc->skill = GetNextAlwaysSkill(0); 
+		proc->choosingSkill = 0; 
 		proc->freezeSeed = false; 
 		if (RandValues->seed) { proc->freezeSeed = true; } 
 		proc->seed = GetInitialSeed(2); 
 		proc->digit = 0; 
 		StartGreenText(proc); 
+		
+		proc->Option[16] = 1; // timed hits 
+		#ifdef FORCE_SPECIFIC_SEED 
+		proc->Option[2] = 0; 
+		proc->Option[3] = 0; 
+		proc->Option[5] = 0; 
+		proc->Option[6] = 0; 
+		proc->seed = 674677; 
+		proc->freezeSeed = true; 
+		#endif 
 	} 
 	return proc; 
 } 
@@ -3314,21 +5302,37 @@ int MenuStartConfigMenu(ProcPtr parent) {
 	
 	// pull up your previously saved options 
 	proc->Option[0] = RandValues->variance; 
-	proc->Option[1] = RandBitflags->base; 
-	proc->Option[2] = RandBitflags->growth; 
-	proc->Option[3] = RandBitflags->levelups; 
-	proc->Option[4] = RandBitflags->caps; 
-	proc->Option[5] = RandBitflags->class; 
-	if (RandBitflags->itemStats && RandBitflags->foundItems) { proc->Option[6] = 1; } 
-	else if (RandBitflags->itemStats) { proc->Option[6] = 3; } 
-	else if (RandBitflags->foundItems) { proc->Option[6] = 2; } 
-	else { proc->Option[6] = 0; } 
-	proc->Option[7] = CheckFlag(CasualModeFlag);
-	proc->Option[8] = RandBitflags->randMusic;		
-	proc->Option[9] = RandBitflags->colours;		
-	proc->Option[10] = RandBitflags->itemDur;		
-	proc->Option[11] = RandBitflags->playerBonus;	
-	proc->Option[12] = RandValues->bonus;		
+	proc->Option[1] = RecruitValues->recruitment; 
+	proc->Option[2] = RandBitflags->base; 
+	proc->Option[3] = RandBitflags->growth + (RandBitflags->grow50*4); 
+	proc->Option[4] = RandBitflags->levelups; 
+	proc->Option[5] = RandBitflags->caps; 
+	proc->Option[6] = RandBitflags->class; 
+	if (RandBitflags->itemStats && RandBitflags->foundItems) { proc->Option[7] = 1; } 
+	else if (RandBitflags->itemStats) { proc->Option[7] = 3; } 
+	else if (RandBitflags->foundItems) { proc->Option[7] = 2; } 
+	else { proc->Option[7] = 0; } 
+	proc->Option[8] = CheckFlag(CasualModeFlag);
+	proc->Option[9] = RandBitflags->randMusic;		
+	proc->Option[10] = RandBitflags->colours;		
+	proc->Option[11] = RandBitflags->itemDur;		
+	proc->Option[12] = RandBitflags->playerBonus;	
+	proc->Option[13] = RandValues->bonus;		
+	proc->Option[14] = RandBitflags->fog;
+	
+	#ifdef FE8 
+	if (DisplayTimedHitsOption) { 
+		proc->Option[16] = 0;
+		if (TimedHitsDifficultyRam->alwaysA) { proc->Option[16] = 1; }  
+		if (TimedHitsDifficultyRam->difficulty == 2) { proc->Option[16] = 2; }  
+		if (TimedHitsDifficultyRam->difficulty == 3) { proc->Option[16] = 3; }  
+	}
+	#endif 
+	
+	if (DisplayRandomSkillsOption) { 
+		proc->Option[17] = RandValues->skills;
+		proc->skill = AlwaysSkill[0];
+	}
 	
 	gLCDControlBuffer.dispcnt.bg0_on = 0;
 	return ME_DISABLE | ME_PLAY_BEEP; // | ME_CLEAR_GFX;
@@ -3337,8 +5341,8 @@ int MenuStartConfigMenu(ProcPtr parent) {
 // STAT SCREEN STUFF 
 extern void DrawStatWithBar(int num, int x, int y, int base, int total, int max); // 807FD28
 
-extern void PutNumberOrBlank(u16 *a, int b, int c); // 80061E4
-//extern void PutNumberBonus(int a, u16 *b); // 8006240
+
+
 extern void PutSpecialChar(u16 * tm, int color, int id); //800615C
 extern void PutNumberSmall(u16* a, int b, int c); // 8006234
 
@@ -3366,7 +5370,7 @@ void PutNumberBonus(int number, u16 *tm)
 	} 
 }
 
-extern u16 gUiTmScratchA[0x280];
+
 extern void PrintDebugStringToBG(u16 *dest, const char *str); // 8004F70
 extern void SetupDebugFontForBG(int bg, int tileDataOffset); // 8004EF8
 extern void StatScreen_Display(struct Proc* proc); // 808119C
@@ -3386,15 +5390,36 @@ void PrintDebugNumberToBG(int bg, int x, int y, int n) {
 void DrawBarsOrGrowths(void); 
 // fe6: 80700a4 
 // in StatScreen_OnIdle in 808127C
+extern int PressSelectFE8Something(void); 
+extern int GetStatScreenPage(void); 
 void StatScreenSelectLoop(ProcPtr proc) { 
+
 	
 	if (sKeyStatusBuffer.newKeys & R_BUTTON)
 		{
+			int page = gStatScreen.page; 
+			#ifdef FE8 
+			if (SkillSysInstalled) { 
+				page = GetStatScreenPage(); 
+			}
+			#endif 
 			Proc_Goto(proc, 0); // TODO: label name
-			StartStatScreenHelp(gStatScreen.page, proc);
+			StartStatScreenHelp(page, proc);
 		}
 	if (sKeyStatusBuffer.newKeys & SELECT_BUTTON)
 		{
+			int page = gStatScreen.page; 
+			#ifdef FE8 
+			if (SkillSysInstalled) { 
+				page = GetStatScreenPage(); 
+			}
+			#endif 
+			#ifdef FE8 
+			if (SkillSysInstalled) { 
+				if (!PressSelectFE8Something()) { return; } 
+			} 
+			#endif 
+			if (page) { return; } 
 			Proc_Goto(proc, 0); // TODO: label name
 			if (!RandBitflags->disp) { RandBitflags->disp = 1; } 
 			else { RandBitflags->disp = 0; } 
@@ -3418,19 +5443,133 @@ int GetUnitCon(struct Unit* unit) { return UNIT_CON(unit); }
 int GetUnitMov(struct Unit* unit) { return UNIT_MOV(unit); } 
 int GetUnitMag(struct Unit* unit) { return unit->_u3A; } 
 
+
+enum
+{
+    // Enumerate stat screen texts
+
+    STATSCREEN_TEXT_CHARANAME, // 0
+    STATSCREEN_TEXT_CLASSNAME, // 1
+
+    STATSCREEN_TEXT_UNUSUED, // 2 (was Exp?)
+
+    STATSCREEN_TEXT_POWLABEL, // 3
+    STATSCREEN_TEXT_SKLLABEL, // 4
+    STATSCREEN_TEXT_SPDLABEL, // 5
+    STATSCREEN_TEXT_LCKLABEL, // 6
+    STATSCREEN_TEXT_DEFLABEL, // 7
+    STATSCREEN_TEXT_RESLABEL, // 8
+    STATSCREEN_TEXT_MOVLABEL, // 9
+    STATSCREEN_TEXT_CONLABEL, // 10
+    STATSCREEN_TEXT_AIDLABEL, // 11
+    STATSCREEN_TEXT_RESCUENAME, // 12
+    STATSCREEN_TEXT_AFFINLABEL, // 13
+    STATSCREEN_TEXT_STATUS, // 14
+
+    STATSCREEN_TEXT_ITEM0, // 15
+    STATSCREEN_TEXT_ITEM1, // 16
+    STATSCREEN_TEXT_ITEM2, // 17
+    STATSCREEN_TEXT_ITEM3, // 18
+    STATSCREEN_TEXT_ITEM4, // 19
+
+    STATSCREEN_TEXT_BSRANGE, // 20
+    STATSCREEN_TEXT_BSATKLABEL, // 21
+    STATSCREEN_TEXT_BSHITLABEL, // 22
+    STATSCREEN_TEXT_BSCRTLABEL, // 23
+    STATSCREEN_TEXT_BSAVOLABEL, // 24
+
+    STATSCREEN_TEXT_WEXP0, // 25
+    STATSCREEN_TEXT_WEXP1, // 26
+    STATSCREEN_TEXT_WEXP2, // 27
+    STATSCREEN_TEXT_WEXP3, // 28
+
+    STATSCREEN_TEXT_SUPPORT0, // 29
+    STATSCREEN_TEXT_SUPPORT1, // 30
+    STATSCREEN_TEXT_SUPPORT2, // 31
+    STATSCREEN_TEXT_SUPPORT3, // 32
+    STATSCREEN_TEXT_SUPPORT4, // 33
+
+    STATSCREEN_TEXT_BWL, // 34
+
+    STATSCREEN_TEXT_MAX
+};
+extern void Text_InsertDrawString(struct Text * text, int x, int colorId, const char * str);
+extern char* GetUnitRescueName(struct Unit* unit); 
+struct ChapterEventGroup
+{
+    /* 00 */ const void * turnBasedEvents;
+    /* 04 */ const void * characterBasedEvents; // must be 32-Aligned?
+}; 
+const struct ChapterEventGroup* GetChapterEventDataPointer(unsigned chIndex); //80315BC fe6 802BBA0
+extern struct Unit * GetUnitFromCharId(s16 pid); //fe7 8017D34 fe6 8017ABC
+struct TalkEventCond {
+    u16 eventType;
+    u16 flag;
+	u32 eventPointer;
+    u8 pidA;
+    u8 pidB;
+    u16 fillerA;
+	#ifndef FE6 
+    u16 unkC;
+    u16 unkE;
+	#endif 
+};
+extern u8 gMode; 
+int _GetTalkee(int unitID) { 
+	const struct TalkEventCond* talkCond = GetChapterEventDataPointer(gCh)->characterBasedEvents;
+	int flag, pid; 
+	struct Unit* unit; 
+	for (int i = 0; i < 255; ++i) { 
+		if (!talkCond[i].eventType) { break; } 
+		if (talkCond[i].pidA != unitID) { continue; } 
+		flag = talkCond[i].flag; 
+		if (flag) { if (CheckFlag(flag)) { continue; } } 
+		pid = talkCond[i].pidB; 
+		#ifdef FE7 
+		if (talkCond[i].unkC) { 
+			if (gMode != talkCond[i].unkC) { continue; } // any / Eliwood / Hector mode 
+		} 
+		#endif 
+		if (pid) { 
+			//unit = GetUnitStructFromEventParameter(pid); 
+			unit = GetUnitFromCharId(pid); 
+			if (!UNIT_IS_VALID(unit)) { continue; } 
+			if (unit->state & (US_DEAD|US_NOT_DEPLOYED|US_BIT16)) { continue; } 
+			return pid;
+		} 
+	} 
+	return 0; 
+} 
 #ifdef FE6 
+extern char TalkText; 
+extern char TrvText; 
 void DrawBarsOrGrowths(void) { // in 807FDF0 fe7, 806ED34 fe6 
     // displaying str/mag stat value
 	int barsOrGrowths = RandBitflags->disp; 
 	
+	
+	int talk_uid = _GetTalkee(gStatScreen.unit->pCharacterData->number); 
+	int x = 13; int y = 7; 
+	ClearText(gStatScreen.text + STATSCREEN_TEXT_ITEM0); // clear text here 
+	if (talk_uid) { 
+	PutDrawText(gStatScreen.text + STATSCREEN_TEXT_ITEM0,   gUiTmScratchA + TILEMAP_INDEX(x-4, y),  gold, 0, 0, &TalkText);
+	talk_uid = GetCharacterData(talk_uid)->nameTextId;
+	Text_InsertDrawString(&gStatScreen.text[STATSCREEN_TEXT_ITEM0], 24, blue, GetStringFromIndex(talk_uid));
+	} 
+
+	else { 
+	PutDrawText(gStatScreen.text + STATSCREEN_TEXT_RESCUENAME,   gUiTmScratchA + TILEMAP_INDEX(x-4, y),  gold, 0, 0, &TrvText);
+	Text_InsertDrawString(&gStatScreen.text[STATSCREEN_TEXT_RESCUENAME], 24, blue, GetUnitRescueName(gStatScreen.unit));
+	} 
+	
 	if (barsOrGrowths) { 
-    DrawStatWithBar(0, 5, 1,
+    NewDrawStatWithBar(0, 5, 1,
         gStatScreen.unit->pow,
         GetUnitPower(gStatScreen.unit),
         GetUnitMaxPow(gStatScreen.unit));
 
     // displaying skl stat value
-    DrawStatWithBar(1, 5, 3,
+    NewDrawStatWithBar(1, 5, 3,
         gStatScreen.unit->state & US_RESCUING
             ? gStatScreen.unit->skl/2
             : gStatScreen.unit->skl,
@@ -3440,7 +5579,7 @@ void DrawBarsOrGrowths(void) { // in 807FDF0 fe7, 806ED34 fe6
             : GetUnitMaxSkl(gStatScreen.unit));
 
     // displaying spd stat value
-    DrawStatWithBar(2, 5, 5,
+    NewDrawStatWithBar(2, 5, 5,
         gStatScreen.unit->state & US_RESCUING
             ? gStatScreen.unit->spd/2
             : gStatScreen.unit->spd,
@@ -3450,19 +5589,19 @@ void DrawBarsOrGrowths(void) { // in 807FDF0 fe7, 806ED34 fe6
             : GetUnitMaxSpd(gStatScreen.unit));
 
     // displaying lck stat value
-    DrawStatWithBar(3, 5, 7,
+    NewDrawStatWithBar(3, 5, 7,
         gStatScreen.unit->lck,
         GetUnitLuck(gStatScreen.unit),
         GetUnitMaxLck(gStatScreen.unit));
 
     // displaying def stat value
-    DrawStatWithBar(4, 5, 9,
+    NewDrawStatWithBar(4, 5, 9,
         gStatScreen.unit->def,
         GetUnitDefense(gStatScreen.unit),
         GetUnitMaxDef(gStatScreen.unit));
 
     // displaying res stat value
-    DrawStatWithBar(5, 5, 11,
+    NewDrawStatWithBar(5, 5, 11,
         gStatScreen.unit->res,
         GetUnitResistance(gStatScreen.unit),
         GetUnitMaxRes(gStatScreen.unit));
@@ -3568,7 +5707,16 @@ void DrawBarsOrGrowths(void) { // in 807FDF0 fe7, 806ED34 fe6
 		#ifdef FE8 
 		SetupDebugFontForBG(0, VramDest_DebugFont);
 		#endif 
-		PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "Seed:");
+		
+		switch (RecruitValues->recruitment) { 
+			case 0: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "0Seed"); break; } 	
+			case 1: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "1Seed"); break; } 	
+			case 2: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "2Seed"); break; } 	
+			case 3: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "3Seed"); break; } 	
+			case 4: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "4Seed"); break; } 	
+			case 5: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "5Seed"); break; } 	
+		default: 
+		} 
 		//PutNumberSmall(TILEMAP_LOCATED(gBG0TilemapBuffer, 0x12, 0x12), white, RandValues->seed);
 		PrintDebugNumberToBG(0, 11, 0x13, RandValues->seed); 
 		//PutNumberSmall(TILEMAP_LOCATED(gBG0TilemapBuffer, 13, 0x12), white, 123456);
@@ -3579,66 +5727,49 @@ void DrawBarsOrGrowths(void) { // in 807FDF0 fe7, 806ED34 fe6
 
 #endif 
 
+extern void SetupDebugFontForOBJ(int a, int objPalNum); // fe6 8005470 fe7 8005280
+extern void PrintDebugStringAsOBJ(int a, int b, const char *str); // fe6 8005550 fe7 800530C
+void DrawVersionNumber(int addr) { 
+	#ifdef FE8 
+	SetupDebugFontForOBJ(0x5000, 5); 
+	#else 
+	SetupDebugFontForOBJ(0x5000, 15);
+	#endif 
+	
+	
+	int y = 8 * 0x12; 
+	#ifdef FE7 
+	if (!addr) { 
+	y += 7; 
+	} 
+	#endif 
+	#ifdef FE8 
+	if (!addr) { 
+	y -= 5; 
+	} 
+	#endif 
+	if (addr) { PrintDebugStringAsOBJ(0, y+7, VersionNumber"          by Vesly"); y = 5; } 
+	else { PrintDebugStringAsOBJ(0, 0, VersionNumber"          by Vesly"); } 
+	int x = 20; 
+	PrintDebugStringAsOBJ(x+0, y, "discord.com/invite/XEZ");
+	PrintDebugStringAsOBJ(x+177, y+1, ")");
+	PrintDebugStringAsOBJ(x+173, y-5, ".");
+	PrintDebugStringAsOBJ(x+180, y, "TJQ");
+	
+	//SetupDebugFontForBG(0, VramDest_DebugFont);
+	//PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0), "V1.4.0");
+
+} 
+
 #ifndef FE6 
 
-enum
-{
-    // Enumerate stat screen texts
-
-    STATSCREEN_TEXT_CHARANAME, // 0
-    STATSCREEN_TEXT_CLASSNAME, // 1
-
-    STATSCREEN_TEXT_UNUSUED, // 2 (was Exp?)
-
-    STATSCREEN_TEXT_POWLABEL, // 3
-    STATSCREEN_TEXT_SKLLABEL, // 4
-    STATSCREEN_TEXT_SPDLABEL, // 5
-    STATSCREEN_TEXT_LCKLABEL, // 6
-    STATSCREEN_TEXT_DEFLABEL, // 7
-    STATSCREEN_TEXT_RESLABEL, // 8
-    STATSCREEN_TEXT_MOVLABEL, // 9
-    STATSCREEN_TEXT_CONLABEL, // 10
-    STATSCREEN_TEXT_AIDLABEL, // 11
-    STATSCREEN_TEXT_RESCUENAME, // 12
-    STATSCREEN_TEXT_AFFINLABEL, // 13
-    STATSCREEN_TEXT_STATUS, // 14
-
-    STATSCREEN_TEXT_ITEM0, // 15
-    STATSCREEN_TEXT_ITEM1, // 16
-    STATSCREEN_TEXT_ITEM2, // 17
-    STATSCREEN_TEXT_ITEM3, // 18
-    STATSCREEN_TEXT_ITEM4, // 19
-
-    STATSCREEN_TEXT_BSRANGE, // 20
-    STATSCREEN_TEXT_BSATKLABEL, // 21
-    STATSCREEN_TEXT_BSHITLABEL, // 22
-    STATSCREEN_TEXT_BSCRTLABEL, // 23
-    STATSCREEN_TEXT_BSAVOLABEL, // 24
-
-    STATSCREEN_TEXT_WEXP0, // 25
-    STATSCREEN_TEXT_WEXP1, // 26
-    STATSCREEN_TEXT_WEXP2, // 27
-    STATSCREEN_TEXT_WEXP3, // 28
-
-    STATSCREEN_TEXT_SUPPORT0, // 29
-    STATSCREEN_TEXT_SUPPORT1, // 30
-    STATSCREEN_TEXT_SUPPORT2, // 31
-    STATSCREEN_TEXT_SUPPORT3, // 32
-    STATSCREEN_TEXT_SUPPORT4, // 33
-
-    STATSCREEN_TEXT_BWL, // 34
-
-    STATSCREEN_TEXT_MAX
-};
 extern bool UnitHasMagicRank(struct Unit* unit);
 extern int GetUnitAid(struct Unit* unit);
 extern int CallprAidGetter(struct Unit* unit); 
-extern void DrawIcon(u16* BgOut, int IconIndex, int OamPalBase); 
 extern int GetUnitAidIconId(u32 attributes);
-extern char* GetUnitRescueName(struct Unit* unit);
 extern char* GetUnitStatusName(struct Unit* unit);
 extern void DisplayBwl(void);
-extern void Text_InsertDrawString(struct Text * text, int x, int colorId, const char * str);
+
 extern int GetUnitAffinityIcon(struct Unit* unit);
 enum
 {
@@ -3750,7 +5881,7 @@ struct SS_StatID {
 
 extern u8* CallSkill_Getter(struct Unit* unit); 
 extern struct SS_StatID gStatScreenFunction[]; 
-extern int _GetTalkee(int); 
+
 extern int IconOrr; 
 int DrawStatByID(int barID, int x, int y, int disp, struct Unit* unit, int id) { 
 	if (gStatScreenFunction[id].specialCase) { 
@@ -3804,14 +5935,19 @@ int DrawStatByID(int barID, int x, int y, int disp, struct Unit* unit, int id) {
 			}	
 			case 7: {
 				ClearText(gStatScreen.text + STATSCREEN_TEXT_ITEM0); // clear wep1 text here 
-				PutDrawText(gStatScreen.text + STATSCREEN_TEXT_ITEM0,   gUiTmScratchA + TILEMAP_INDEX(x-4, y),  gold, 0, 0, "Talk");
-				#ifdef FE8 
-				int talk_uid = _GetTalkee(unit->pCharacterData->number); // not for fe6/fe7 atm
+				//#ifdef FE8 
+				int talk_uid = _GetTalkee(unit->pCharacterData->number); 
 				if (talk_uid) { 
+					PutDrawText(gStatScreen.text + STATSCREEN_TEXT_ITEM0,   gUiTmScratchA + TILEMAP_INDEX(x-4, y),  gold, 0, 0, "Talk");
 					talk_uid = GetCharacterData(talk_uid)->nameTextId;
 					Text_InsertDrawString(&gStatScreen.text[STATSCREEN_TEXT_ITEM0], 24, blue, GetStringFromIndex(talk_uid));
 				} 
-				#endif 
+				
+				else { 
+					PutDrawText(gStatScreen.text + STATSCREEN_TEXT_RESCUENAME,   gUiTmScratchA + TILEMAP_INDEX(x-4, y),  gold, 0, 0, "Trv");
+					Text_InsertDrawString(&gStatScreen.text[STATSCREEN_TEXT_RESCUENAME], 24, blue, GetUnitRescueName(unit));
+				} 
+				//#endif 
 				return 0; break;
 			}
 			case 8: {
@@ -3927,7 +6063,7 @@ int DrawStatByID(int barID, int x, int y, int disp, struct Unit* unit, int id) {
 	} 
 	if (gStatScreenFunction[id].GetUnitUnadjustedStat) { // could be null, in which case we draw nothing 
 		if (disp == 1) {
-			DrawStatWithBar(barID, x, y, gStatScreenFunction[id].GetUnitUnadjustedStat(unit),
+			NewDrawStatWithBar(barID, x, y, gStatScreenFunction[id].GetUnitUnadjustedStat(unit),
 			gStatScreenFunction[id].GetUnitStat(unit), gStatScreenFunction[id].GetUnitMaxStat(unit));  
 		}
 		if (disp == 0) {
@@ -3951,7 +6087,6 @@ enum
 #define OAM2_LAYER(al)     (((al) & 0x3) << 10)
 #define OAM0_SHAPE_8x8     0x0000
 #define OAM1_SIZE_8x8      0x0000
-extern u16 const gObject_8x8[]; 
 extern void UpdateStatArrowSprites(int, int, u8); 
 
 struct Vec2 GetIconCoordFromStatScreenLayout(int id) { 
@@ -4030,6 +6165,15 @@ void DrawBarsOrGrowths(void) { // in 807FDF0 fe7, 806ED34 fe6
     // displaying str/mag stat value
 	int disp = RandBitflags->disp; 
 	struct Unit* unit = gStatScreen.unit; 
+	//for (int i = 0; i < 0x240; ++i) { 
+		//gUiTmScratchC[i] = 0; 
+	//} 
+	//for (int i = 0; i < 0x280; ++i) { 
+		//gUiTmScratchA[i] = 0; 
+	//} 
+	//BG_Fill(gBG2TilemapBuffer, 0);
+	//BG_EnableSyncByMask(BG2_SYNC_BIT); 
+	
 	if (UNIT_FACTION(unit) != FACTION_BLUE) { disp = 1; } 
 	int barCount = 0; 
 	barCount += DrawStatByID(barCount, 5, 1, disp, unit, 0); 
@@ -4076,7 +6220,15 @@ void DrawBarsOrGrowths(void) { // in 807FDF0 fe7, 806ED34 fe6
 		//BG_EnableSyncByMask(BG3_SYNC_BIT);
 		#endif 
 		SetupDebugFontForBG(0, VramDest_DebugFont);
-		PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "Seed:");
+		switch (RecruitValues->recruitment) { 
+			case 0: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "0Seed"); break; } 	
+			case 1: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "1Seed"); break; } 	
+			case 2: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "2Seed"); break; } 	
+			case 3: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "3Seed"); break; } 	
+			case 4: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "4Seed"); break; } 	
+			case 5: { PrintDebugStringToBG(gBG0TilemapBuffer + TILEMAP_INDEX(0, 0x13), "5Seed"); break; } 	
+		default: 
+		} 
 		PrintDebugNumberToBG(0, 11, 0x13, RandValues->seed); 
 	}
 
@@ -4213,7 +6365,7 @@ void StartShopScreen(struct Unit* unit, u16* inventory, u8 shopType, ProcPtr par
 			if ((i>=5) && (term)) { itemId = 0; } 
 			
 			if ((i == rareItemSlot) && (RareItemTableSize)) { itemId = RandRareItem(itemId, noise, i, true, varyByCh); } 
-			else { itemId = RandNewItem(itemId, noise, i, true, varyByCh); } 
+			else { itemId = RandNewItem(itemId, noise, i, true, varyByCh, false); } 
 			
 			proc->shopItems[i] = itemId; 
 		}
@@ -4607,8 +6759,7 @@ const s8* GetUnitMovementCost(struct Unit* unit) { // 80187d4
 
 //#ifndef FE8 
 extern int OnlyThievesCanUseLockpicks; 
-s8 CanUnitUseLockpickItem(struct Unit* unit) // 80273B8
-{
+int CanUnitTypicallyUseLockpickItem(struct Unit* unit) { 
 	int faction = UNIT_FACTION(unit); 
 	if (faction == FACTION_BLUE) { 
 		if (OnlyThievesCanUseLockpicks) { 
@@ -4617,6 +6768,13 @@ s8 CanUnitUseLockpickItem(struct Unit* unit) // 80273B8
 			} 
 		} 
 	}
+	return true; 
+} 
+
+
+s8 CanUnitUseLockpickItem(struct Unit* unit) // 80273B8
+{
+	if (!CanUnitTypicallyUseLockpickItem(unit)) { return false; } 
 
     if (!CanUnitUseChestKeyItem(unit) && !CanUnitUseDoorKeyItem(unit) && !CanUnitOpenBridge(unit))
         return FALSE;
@@ -4705,8 +6863,7 @@ s8 IsItemDisplayUsable(struct Unit* unit, int item) { // 8016AB0
             return FALSE;
 
         if (GetItemIndex(item) == LOCKPICK) {// lockpick 
-			
-			if (!(CanUnitUseLockpickItem(unit))) { 
+			if (!(CanUnitTypicallyUseLockpickItem(unit))) { 
             return FALSE;
 			}
 		}
@@ -4718,19 +6875,19 @@ s8 IsItemDisplayUsable(struct Unit* unit, int item) { // 8016AB0
     return TRUE;
 }
  
-#ifdef FE8 
+ 
 extern int GetUnitBestWRankType(struct Unit*);
 s8 ArenaIsUnitAllowed(struct Unit* unit) {
     if (unit->statusIndex == UNIT_STATUS_SILENCED) {
         return 0;
     }
 
-    if (GetUnitBestWRankType(unit) < 0) {
+    if (GetUnitBestWRankType(unit) < 0) { // fe6 8029964
         return 0;
     }
 	if (UNIT_CATTRIBUTES(unit) & CA_LOCK_3) { return 0; } // no monsters 
 
     return 1;
 }
-#endif 
+
 

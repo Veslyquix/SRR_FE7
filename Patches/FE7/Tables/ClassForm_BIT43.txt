@@ -1,0 +1,257 @@
+256
+0x00 None
+0x01 Disable Exp Gain
+0x02 Silencer/Lethality
+0x03 Disable Exp Gain,Silencer/Lethality
+0x04 Magic Seal
+0x05 Disable Exp Gain,Magic Seal
+0x06 Silencer/Lethality,Magic Seal
+0x07 Disable Exp Gain,Silencer/Lethality,Magic Seal
+0x08 Droppable Item
+0x09 Disable Exp Gain,Droppable Item
+0x0A Silencer/Lethality,Droppable Item
+0x0B Disable Exp Gain,Silencer/Lethality,Droppable Item
+0x0C Magic Seal,Droppable Item
+0x0D Disable Exp Gain,Magic Seal,Droppable Item
+0x0E Silencer/Lethality,Magic Seal,Droppable Item
+0x0F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item
+0x10 Eliwood Lock
+0x11 Disable Exp Gain,Eliwood Lock
+0x12 Silencer/Lethality,Eliwood Lock
+0x13 Disable Exp Gain,Silencer/Lethality,Eliwood Lock
+0x14 Magic Seal,Eliwood Lock
+0x15 Disable Exp Gain,Magic Seal,Eliwood Lock
+0x16 Silencer/Lethality,Magic Seal,Eliwood Lock
+0x17 Disable Exp Gain,Silencer/Lethality,Magic Seal,Eliwood Lock
+0x18 Droppable Item,Eliwood Lock
+0x19 Disable Exp Gain,Droppable Item,Eliwood Lock
+0x1A Silencer/Lethality,Droppable Item,Eliwood Lock
+0x1B Disable Exp Gain,Silencer/Lethality,Droppable Item,Eliwood Lock
+0x1C Magic Seal,Droppable Item,Eliwood Lock
+0x1D Disable Exp Gain,Magic Seal,Droppable Item,Eliwood Lock
+0x1E Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock
+0x1F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock
+0x20 Hector Lock
+0x21 Disable Exp Gain,Hector Lock
+0x22 Silencer/Lethality,Hector Lock
+0x23 Disable Exp Gain,Silencer/Lethality,Hector Lock
+0x24 Magic Seal,Hector Lock
+0x25 Disable Exp Gain,Magic Seal,Hector Lock
+0x26 Silencer/Lethality,Magic Seal,Hector Lock
+0x27 Disable Exp Gain,Silencer/Lethality,Magic Seal,Hector Lock
+0x28 Droppable Item,Hector Lock
+0x29 Disable Exp Gain,Droppable Item,Hector Lock
+0x2A Silencer/Lethality,Droppable Item,Hector Lock
+0x2B Disable Exp Gain,Silencer/Lethality,Droppable Item,Hector Lock
+0x2C Magic Seal,Droppable Item,Hector Lock
+0x2D Disable Exp Gain,Magic Seal,Droppable Item,Hector Lock
+0x2E Silencer/Lethality,Magic Seal,Droppable Item,Hector Lock
+0x2F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Hector Lock
+0x30 Eliwood Lock,Hector Lock
+0x31 Disable Exp Gain,Eliwood Lock,Hector Lock
+0x32 Silencer/Lethality,Eliwood Lock,Hector Lock
+0x33 Disable Exp Gain,Silencer/Lethality,Eliwood Lock,Hector Lock
+0x34 Magic Seal,Eliwood Lock,Hector Lock
+0x35 Disable Exp Gain,Magic Seal,Eliwood Lock,Hector Lock
+0x36 Silencer/Lethality,Magic Seal,Eliwood Lock,Hector Lock
+0x37 Disable Exp Gain,Silencer/Lethality,Magic Seal,Eliwood Lock,Hector Lock
+0x38 Droppable Item,Eliwood Lock,Hector Lock
+0x39 Disable Exp Gain,Droppable Item,Eliwood Lock,Hector Lock
+0x3A Silencer/Lethality,Droppable Item,Eliwood Lock,Hector Lock
+0x3B Disable Exp Gain,Silencer/Lethality,Droppable Item,Eliwood Lock,Hector Lock
+0x3C Magic Seal,Droppable Item,Eliwood Lock,Hector Lock
+0x3D Disable Exp Gain,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock
+0x3E Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock
+0x3F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock
+0x40 Lyndis Lock
+0x41 Disable Exp Gain,Lyndis Lock
+0x42 Silencer/Lethality,Lyndis Lock
+0x43 Disable Exp Gain,Silencer/Lethality,Lyndis Lock
+0x44 Magic Seal,Lyndis Lock
+0x45 Disable Exp Gain,Magic Seal,Lyndis Lock
+0x46 Silencer/Lethality,Magic Seal,Lyndis Lock
+0x47 Disable Exp Gain,Silencer/Lethality,Magic Seal,Lyndis Lock
+0x48 Droppable Item,Lyndis Lock
+0x49 Disable Exp Gain,Droppable Item,Lyndis Lock
+0x4A Silencer/Lethality,Droppable Item,Lyndis Lock
+0x4B Disable Exp Gain,Silencer/Lethality,Droppable Item,Lyndis Lock
+0x4C Magic Seal,Droppable Item,Lyndis Lock
+0x4D Disable Exp Gain,Magic Seal,Droppable Item,Lyndis Lock
+0x4E Silencer/Lethality,Magic Seal,Droppable Item,Lyndis Lock
+0x4F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Lyndis Lock
+0x50 Eliwood Lock,Lyndis Lock
+0x51 Disable Exp Gain,Eliwood Lock,Lyndis Lock
+0x52 Silencer/Lethality,Eliwood Lock,Lyndis Lock
+0x53 Disable Exp Gain,Silencer/Lethality,Eliwood Lock,Lyndis Lock
+0x54 Magic Seal,Eliwood Lock,Lyndis Lock
+0x55 Disable Exp Gain,Magic Seal,Eliwood Lock,Lyndis Lock
+0x56 Silencer/Lethality,Magic Seal,Eliwood Lock,Lyndis Lock
+0x57 Disable Exp Gain,Silencer/Lethality,Magic Seal,Eliwood Lock,Lyndis Lock
+0x58 Droppable Item,Eliwood Lock,Lyndis Lock
+0x59 Disable Exp Gain,Droppable Item,Eliwood Lock,Lyndis Lock
+0x5A Silencer/Lethality,Droppable Item,Eliwood Lock,Lyndis Lock
+0x5B Disable Exp Gain,Silencer/Lethality,Droppable Item,Eliwood Lock,Lyndis Lock
+0x5C Magic Seal,Droppable Item,Eliwood Lock,Lyndis Lock
+0x5D Disable Exp Gain,Magic Seal,Droppable Item,Eliwood Lock,Lyndis Lock
+0x5E Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Lyndis Lock
+0x5F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Lyndis Lock
+0x60 Hector Lock,Lyndis Lock
+0x61 Disable Exp Gain,Hector Lock,Lyndis Lock
+0x62 Silencer/Lethality,Hector Lock,Lyndis Lock
+0x63 Disable Exp Gain,Silencer/Lethality,Hector Lock,Lyndis Lock
+0x64 Magic Seal,Hector Lock,Lyndis Lock
+0x65 Disable Exp Gain,Magic Seal,Hector Lock,Lyndis Lock
+0x66 Silencer/Lethality,Magic Seal,Hector Lock,Lyndis Lock
+0x67 Disable Exp Gain,Silencer/Lethality,Magic Seal,Hector Lock,Lyndis Lock
+0x68 Droppable Item,Hector Lock,Lyndis Lock
+0x69 Disable Exp Gain,Droppable Item,Hector Lock,Lyndis Lock
+0x6A Silencer/Lethality,Droppable Item,Hector Lock,Lyndis Lock
+0x6B Disable Exp Gain,Silencer/Lethality,Droppable Item,Hector Lock,Lyndis Lock
+0x6C Magic Seal,Droppable Item,Hector Lock,Lyndis Lock
+0x6D Disable Exp Gain,Magic Seal,Droppable Item,Hector Lock,Lyndis Lock
+0x6E Silencer/Lethality,Magic Seal,Droppable Item,Hector Lock,Lyndis Lock
+0x6F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Hector Lock,Lyndis Lock
+0x70 Eliwood Lock,Hector Lock,Lyndis Lock
+0x71 Disable Exp Gain,Eliwood Lock,Hector Lock,Lyndis Lock
+0x72 Silencer/Lethality,Eliwood Lock,Hector Lock,Lyndis Lock
+0x73 Disable Exp Gain,Silencer/Lethality,Eliwood Lock,Hector Lock,Lyndis Lock
+0x74 Magic Seal,Eliwood Lock,Hector Lock,Lyndis Lock
+0x75 Disable Exp Gain,Magic Seal,Eliwood Lock,Hector Lock,Lyndis Lock
+0x76 Silencer/Lethality,Magic Seal,Eliwood Lock,Hector Lock,Lyndis Lock
+0x77 Disable Exp Gain,Silencer/Lethality,Magic Seal,Eliwood Lock,Hector Lock,Lyndis Lock
+0x78 Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock
+0x79 Disable Exp Gain,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock
+0x7A Silencer/Lethality,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock
+0x7B Disable Exp Gain,Silencer/Lethality,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock
+0x7C Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock
+0x7D Disable Exp Gain,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock
+0x7E Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock
+0x7F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock
+0x80 Athos Lock
+0x81 Disable Exp Gain,Athos Lock
+0x82 Silencer/Lethality,Athos Lock
+0x83 Disable Exp Gain,Silencer/Lethality,Athos Lock
+0x84 Magic Seal,Athos Lock
+0x85 Disable Exp Gain,Magic Seal,Athos Lock
+0x86 Silencer/Lethality,Magic Seal,Athos Lock
+0x87 Disable Exp Gain,Silencer/Lethality,Magic Seal,Athos Lock
+0x88 Droppable Item,Athos Lock
+0x89 Disable Exp Gain,Droppable Item,Athos Lock
+0x8A Silencer/Lethality,Droppable Item,Athos Lock
+0x8B Disable Exp Gain,Silencer/Lethality,Droppable Item,Athos Lock
+0x8C Magic Seal,Droppable Item,Athos Lock
+0x8D Disable Exp Gain,Magic Seal,Droppable Item,Athos Lock
+0x8E Silencer/Lethality,Magic Seal,Droppable Item,Athos Lock
+0x8F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Athos Lock
+0x90 Eliwood Lock,Athos Lock
+0x91 Disable Exp Gain,Eliwood Lock,Athos Lock
+0x92 Silencer/Lethality,Eliwood Lock,Athos Lock
+0x93 Disable Exp Gain,Silencer/Lethality,Eliwood Lock,Athos Lock
+0x94 Magic Seal,Eliwood Lock,Athos Lock
+0x95 Disable Exp Gain,Magic Seal,Eliwood Lock,Athos Lock
+0x96 Silencer/Lethality,Magic Seal,Eliwood Lock,Athos Lock
+0x97 Disable Exp Gain,Silencer/Lethality,Magic Seal,Eliwood Lock,Athos Lock
+0x98 Droppable Item,Eliwood Lock,Athos Lock
+0x99 Disable Exp Gain,Droppable Item,Eliwood Lock,Athos Lock
+0x9A Silencer/Lethality,Droppable Item,Eliwood Lock,Athos Lock
+0x9B Disable Exp Gain,Silencer/Lethality,Droppable Item,Eliwood Lock,Athos Lock
+0x9C Magic Seal,Droppable Item,Eliwood Lock,Athos Lock
+0x9D Disable Exp Gain,Magic Seal,Droppable Item,Eliwood Lock,Athos Lock
+0x9E Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Athos Lock
+0x9F Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Athos Lock
+0xA0 Hector Lock,Athos Lock
+0xA1 Disable Exp Gain,Hector Lock,Athos Lock
+0xA2 Silencer/Lethality,Hector Lock,Athos Lock
+0xA3 Disable Exp Gain,Silencer/Lethality,Hector Lock,Athos Lock
+0xA4 Magic Seal,Hector Lock,Athos Lock
+0xA5 Disable Exp Gain,Magic Seal,Hector Lock,Athos Lock
+0xA6 Silencer/Lethality,Magic Seal,Hector Lock,Athos Lock
+0xA7 Disable Exp Gain,Silencer/Lethality,Magic Seal,Hector Lock,Athos Lock
+0xA8 Droppable Item,Hector Lock,Athos Lock
+0xA9 Disable Exp Gain,Droppable Item,Hector Lock,Athos Lock
+0xAA Silencer/Lethality,Droppable Item,Hector Lock,Athos Lock
+0xAB Disable Exp Gain,Silencer/Lethality,Droppable Item,Hector Lock,Athos Lock
+0xAC Magic Seal,Droppable Item,Hector Lock,Athos Lock
+0xAD Disable Exp Gain,Magic Seal,Droppable Item,Hector Lock,Athos Lock
+0xAE Silencer/Lethality,Magic Seal,Droppable Item,Hector Lock,Athos Lock
+0xAF Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Hector Lock,Athos Lock
+0xB0 Eliwood Lock,Hector Lock,Athos Lock
+0xB1 Disable Exp Gain,Eliwood Lock,Hector Lock,Athos Lock
+0xB2 Silencer/Lethality,Eliwood Lock,Hector Lock,Athos Lock
+0xB3 Disable Exp Gain,Silencer/Lethality,Eliwood Lock,Hector Lock,Athos Lock
+0xB4 Magic Seal,Eliwood Lock,Hector Lock,Athos Lock
+0xB5 Disable Exp Gain,Magic Seal,Eliwood Lock,Hector Lock,Athos Lock
+0xB6 Silencer/Lethality,Magic Seal,Eliwood Lock,Hector Lock,Athos Lock
+0xB7 Disable Exp Gain,Silencer/Lethality,Magic Seal,Eliwood Lock,Hector Lock,Athos Lock
+0xB8 Droppable Item,Eliwood Lock,Hector Lock,Athos Lock
+0xB9 Disable Exp Gain,Droppable Item,Eliwood Lock,Hector Lock,Athos Lock
+0xBA Silencer/Lethality,Droppable Item,Eliwood Lock,Hector Lock,Athos Lock
+0xBB Disable Exp Gain,Silencer/Lethality,Droppable Item,Eliwood Lock,Hector Lock,Athos Lock
+0xBC Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Athos Lock
+0xBD Disable Exp Gain,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Athos Lock
+0xBE Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Athos Lock
+0xBF Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Athos Lock
+0xC0 Lyndis Lock,Athos Lock
+0xC1 Disable Exp Gain,Lyndis Lock,Athos Lock
+0xC2 Silencer/Lethality,Lyndis Lock,Athos Lock
+0xC3 Disable Exp Gain,Silencer/Lethality,Lyndis Lock,Athos Lock
+0xC4 Magic Seal,Lyndis Lock,Athos Lock
+0xC5 Disable Exp Gain,Magic Seal,Lyndis Lock,Athos Lock
+0xC6 Silencer/Lethality,Magic Seal,Lyndis Lock,Athos Lock
+0xC7 Disable Exp Gain,Silencer/Lethality,Magic Seal,Lyndis Lock,Athos Lock
+0xC8 Droppable Item,Lyndis Lock,Athos Lock
+0xC9 Disable Exp Gain,Droppable Item,Lyndis Lock,Athos Lock
+0xCA Silencer/Lethality,Droppable Item,Lyndis Lock,Athos Lock
+0xCB Disable Exp Gain,Silencer/Lethality,Droppable Item,Lyndis Lock,Athos Lock
+0xCC Magic Seal,Droppable Item,Lyndis Lock,Athos Lock
+0xCD Disable Exp Gain,Magic Seal,Droppable Item,Lyndis Lock,Athos Lock
+0xCE Silencer/Lethality,Magic Seal,Droppable Item,Lyndis Lock,Athos Lock
+0xCF Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Lyndis Lock,Athos Lock
+0xD0 Eliwood Lock,Lyndis Lock,Athos Lock
+0xD1 Disable Exp Gain,Eliwood Lock,Lyndis Lock,Athos Lock
+0xD2 Silencer/Lethality,Eliwood Lock,Lyndis Lock,Athos Lock
+0xD3 Disable Exp Gain,Silencer/Lethality,Eliwood Lock,Lyndis Lock,Athos Lock
+0xD4 Magic Seal,Eliwood Lock,Lyndis Lock,Athos Lock
+0xD5 Disable Exp Gain,Magic Seal,Eliwood Lock,Lyndis Lock,Athos Lock
+0xD6 Silencer/Lethality,Magic Seal,Eliwood Lock,Lyndis Lock,Athos Lock
+0xD7 Disable Exp Gain,Silencer/Lethality,Magic Seal,Eliwood Lock,Lyndis Lock,Athos Lock
+0xD8 Droppable Item,Eliwood Lock,Lyndis Lock,Athos Lock
+0xD9 Disable Exp Gain,Droppable Item,Eliwood Lock,Lyndis Lock,Athos Lock
+0xDA Silencer/Lethality,Droppable Item,Eliwood Lock,Lyndis Lock,Athos Lock
+0xDB Disable Exp Gain,Silencer/Lethality,Droppable Item,Eliwood Lock,Lyndis Lock,Athos Lock
+0xDC Magic Seal,Droppable Item,Eliwood Lock,Lyndis Lock,Athos Lock
+0xDD Disable Exp Gain,Magic Seal,Droppable Item,Eliwood Lock,Lyndis Lock,Athos Lock
+0xDE Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Lyndis Lock,Athos Lock
+0xDF Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Lyndis Lock,Athos Lock
+0xE0 Hector Lock,Lyndis Lock,Athos Lock
+0xE1 Disable Exp Gain,Hector Lock,Lyndis Lock,Athos Lock
+0xE2 Silencer/Lethality,Hector Lock,Lyndis Lock,Athos Lock
+0xE3 Disable Exp Gain,Silencer/Lethality,Hector Lock,Lyndis Lock,Athos Lock
+0xE4 Magic Seal,Hector Lock,Lyndis Lock,Athos Lock
+0xE5 Disable Exp Gain,Magic Seal,Hector Lock,Lyndis Lock,Athos Lock
+0xE6 Silencer/Lethality,Magic Seal,Hector Lock,Lyndis Lock,Athos Lock
+0xE7 Disable Exp Gain,Silencer/Lethality,Magic Seal,Hector Lock,Lyndis Lock,Athos Lock
+0xE8 Droppable Item,Hector Lock,Lyndis Lock,Athos Lock
+0xE9 Disable Exp Gain,Droppable Item,Hector Lock,Lyndis Lock,Athos Lock
+0xEA Silencer/Lethality,Droppable Item,Hector Lock,Lyndis Lock,Athos Lock
+0xEB Disable Exp Gain,Silencer/Lethality,Droppable Item,Hector Lock,Lyndis Lock,Athos Lock
+0xEC Magic Seal,Droppable Item,Hector Lock,Lyndis Lock,Athos Lock
+0xED Disable Exp Gain,Magic Seal,Droppable Item,Hector Lock,Lyndis Lock,Athos Lock
+0xEE Silencer/Lethality,Magic Seal,Droppable Item,Hector Lock,Lyndis Lock,Athos Lock
+0xEF Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Hector Lock,Lyndis Lock,Athos Lock
+0xF0 Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF1 Disable Exp Gain,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF2 Silencer/Lethality,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF3 Disable Exp Gain,Silencer/Lethality,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF4 Magic Seal,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF5 Disable Exp Gain,Magic Seal,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF6 Silencer/Lethality,Magic Seal,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF7 Disable Exp Gain,Silencer/Lethality,Magic Seal,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF8 Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xF9 Disable Exp Gain,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xFA Silencer/Lethality,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xFB Disable Exp Gain,Silencer/Lethality,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xFC Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xFD Disable Exp Gain,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xFE Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock
+0xFF Disable Exp Gain,Silencer/Lethality,Magic Seal,Droppable Item,Eliwood Lock,Hector Lock,Lyndis Lock,Athos Lock

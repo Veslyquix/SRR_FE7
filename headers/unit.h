@@ -46,9 +46,11 @@ struct CharacterData
     /* 28 */ u32 attributes;
 
     /* 2C */ u32 pSupportData;
+	#ifndef FE6 
     /* 30 */ u8 visit_group;
 
     /* 31 */ u8 _pad_[0x34 - 0x31];
+	#endif 
 };
 
 

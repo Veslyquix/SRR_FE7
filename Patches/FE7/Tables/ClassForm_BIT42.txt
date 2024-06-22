@@ -1,0 +1,257 @@
+256
+0x00 None
+0x01 Weapon Lock 1
+0x02 Myrmidon/Swordmaster
+0x03 Weapon Lock 1,Myrmidon/Swordmaster
+0x04 Manakete Lock
+0x05 Weapon Lock 1,Manakete Lock
+0x06 Myrmidon/Swordmaster,Manakete Lock
+0x07 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock
+0x08 Morphs
+0x09 Weapon Lock 1,Morphs
+0x0A Myrmidon/Swordmaster,Morphs
+0x0B Weapon Lock 1,Myrmidon/Swordmaster,Morphs
+0x0C Manakete Lock,Morphs
+0x0D Weapon Lock 1,Manakete Lock,Morphs
+0x0E Myrmidon/Swordmaster,Manakete Lock,Morphs
+0x0F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs
+0x10 Disable Unit Select
+0x11 Weapon Lock 1,Disable Unit Select
+0x12 Myrmidon/Swordmaster,Disable Unit Select
+0x13 Weapon Lock 1,Myrmidon/Swordmaster,Disable Unit Select
+0x14 Manakete Lock,Disable Unit Select
+0x15 Weapon Lock 1,Manakete Lock,Disable Unit Select
+0x16 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select
+0x17 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select
+0x18 Morphs,Disable Unit Select
+0x19 Weapon Lock 1,Morphs,Disable Unit Select
+0x1A Myrmidon/Swordmaster,Morphs,Disable Unit Select
+0x1B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Disable Unit Select
+0x1C Manakete Lock,Morphs,Disable Unit Select
+0x1D Weapon Lock 1,Manakete Lock,Morphs,Disable Unit Select
+0x1E Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select
+0x1F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select
+0x20 Triangle Attack 1
+0x21 Weapon Lock 1,Triangle Attack 1
+0x22 Myrmidon/Swordmaster,Triangle Attack 1
+0x23 Weapon Lock 1,Myrmidon/Swordmaster,Triangle Attack 1
+0x24 Manakete Lock,Triangle Attack 1
+0x25 Weapon Lock 1,Manakete Lock,Triangle Attack 1
+0x26 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1
+0x27 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1
+0x28 Morphs,Triangle Attack 1
+0x29 Weapon Lock 1,Morphs,Triangle Attack 1
+0x2A Myrmidon/Swordmaster,Morphs,Triangle Attack 1
+0x2B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Triangle Attack 1
+0x2C Manakete Lock,Morphs,Triangle Attack 1
+0x2D Weapon Lock 1,Manakete Lock,Morphs,Triangle Attack 1
+0x2E Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 1
+0x2F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 1
+0x30 Disable Unit Select,Triangle Attack 1
+0x31 Weapon Lock 1,Disable Unit Select,Triangle Attack 1
+0x32 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1
+0x33 Weapon Lock 1,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1
+0x34 Manakete Lock,Disable Unit Select,Triangle Attack 1
+0x35 Weapon Lock 1,Manakete Lock,Disable Unit Select,Triangle Attack 1
+0x36 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1
+0x37 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1
+0x38 Morphs,Disable Unit Select,Triangle Attack 1
+0x39 Weapon Lock 1,Morphs,Disable Unit Select,Triangle Attack 1
+0x3A Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 1
+0x3B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 1
+0x3C Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1
+0x3D Weapon Lock 1,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1
+0x3E Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1
+0x3F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1
+0x40 Triangle Attack 2
+0x41 Weapon Lock 1,Triangle Attack 2
+0x42 Myrmidon/Swordmaster,Triangle Attack 2
+0x43 Weapon Lock 1,Myrmidon/Swordmaster,Triangle Attack 2
+0x44 Manakete Lock,Triangle Attack 2
+0x45 Weapon Lock 1,Manakete Lock,Triangle Attack 2
+0x46 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 2
+0x47 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 2
+0x48 Morphs,Triangle Attack 2
+0x49 Weapon Lock 1,Morphs,Triangle Attack 2
+0x4A Myrmidon/Swordmaster,Morphs,Triangle Attack 2
+0x4B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Triangle Attack 2
+0x4C Manakete Lock,Morphs,Triangle Attack 2
+0x4D Weapon Lock 1,Manakete Lock,Morphs,Triangle Attack 2
+0x4E Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 2
+0x4F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 2
+0x50 Disable Unit Select,Triangle Attack 2
+0x51 Weapon Lock 1,Disable Unit Select,Triangle Attack 2
+0x52 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 2
+0x53 Weapon Lock 1,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 2
+0x54 Manakete Lock,Disable Unit Select,Triangle Attack 2
+0x55 Weapon Lock 1,Manakete Lock,Disable Unit Select,Triangle Attack 2
+0x56 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 2
+0x57 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 2
+0x58 Morphs,Disable Unit Select,Triangle Attack 2
+0x59 Weapon Lock 1,Morphs,Disable Unit Select,Triangle Attack 2
+0x5A Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 2
+0x5B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 2
+0x5C Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 2
+0x5D Weapon Lock 1,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 2
+0x5E Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 2
+0x5F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 2
+0x60 Triangle Attack 1,Triangle Attack 2
+0x61 Weapon Lock 1,Triangle Attack 1,Triangle Attack 2
+0x62 Myrmidon/Swordmaster,Triangle Attack 1,Triangle Attack 2
+0x63 Weapon Lock 1,Myrmidon/Swordmaster,Triangle Attack 1,Triangle Attack 2
+0x64 Manakete Lock,Triangle Attack 1,Triangle Attack 2
+0x65 Weapon Lock 1,Manakete Lock,Triangle Attack 1,Triangle Attack 2
+0x66 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Triangle Attack 2
+0x67 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Triangle Attack 2
+0x68 Morphs,Triangle Attack 1,Triangle Attack 2
+0x69 Weapon Lock 1,Morphs,Triangle Attack 1,Triangle Attack 2
+0x6A Myrmidon/Swordmaster,Morphs,Triangle Attack 1,Triangle Attack 2
+0x6B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Triangle Attack 1,Triangle Attack 2
+0x6C Manakete Lock,Morphs,Triangle Attack 1,Triangle Attack 2
+0x6D Weapon Lock 1,Manakete Lock,Morphs,Triangle Attack 1,Triangle Attack 2
+0x6E Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 1,Triangle Attack 2
+0x6F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 1,Triangle Attack 2
+0x70 Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x71 Weapon Lock 1,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x72 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x73 Weapon Lock 1,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x74 Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x75 Weapon Lock 1,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x76 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x77 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x78 Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x79 Weapon Lock 1,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7A Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7C Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7D Weapon Lock 1,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7E Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x7F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2
+0x80 Usage prohibited
+0x81 Weapon Lock 1,Usage prohibited
+0x82 Myrmidon/Swordmaster,Usage prohibited
+0x83 Weapon Lock 1,Myrmidon/Swordmaster,Usage prohibited
+0x84 Manakete Lock,Usage prohibited
+0x85 Weapon Lock 1,Manakete Lock,Usage prohibited
+0x86 Myrmidon/Swordmaster,Manakete Lock,Usage prohibited
+0x87 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Usage prohibited
+0x88 Morphs,Usage prohibited
+0x89 Weapon Lock 1,Morphs,Usage prohibited
+0x8A Myrmidon/Swordmaster,Morphs,Usage prohibited
+0x8B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Usage prohibited
+0x8C Manakete Lock,Morphs,Usage prohibited
+0x8D Weapon Lock 1,Manakete Lock,Morphs,Usage prohibited
+0x8E Myrmidon/Swordmaster,Manakete Lock,Morphs,Usage prohibited
+0x8F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Usage prohibited
+0x90 Disable Unit Select,Usage prohibited
+0x91 Weapon Lock 1,Disable Unit Select,Usage prohibited
+0x92 Myrmidon/Swordmaster,Disable Unit Select,Usage prohibited
+0x93 Weapon Lock 1,Myrmidon/Swordmaster,Disable Unit Select,Usage prohibited
+0x94 Manakete Lock,Disable Unit Select,Usage prohibited
+0x95 Weapon Lock 1,Manakete Lock,Disable Unit Select,Usage prohibited
+0x96 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Usage prohibited
+0x97 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Usage prohibited
+0x98 Morphs,Disable Unit Select,Usage prohibited
+0x99 Weapon Lock 1,Morphs,Disable Unit Select,Usage prohibited
+0x9A Myrmidon/Swordmaster,Morphs,Disable Unit Select,Usage prohibited
+0x9B Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Disable Unit Select,Usage prohibited
+0x9C Manakete Lock,Morphs,Disable Unit Select,Usage prohibited
+0x9D Weapon Lock 1,Manakete Lock,Morphs,Disable Unit Select,Usage prohibited
+0x9E Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Usage prohibited
+0x9F Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Usage prohibited
+0xA0 Triangle Attack 1,Usage prohibited
+0xA1 Weapon Lock 1,Triangle Attack 1,Usage prohibited
+0xA2 Myrmidon/Swordmaster,Triangle Attack 1,Usage prohibited
+0xA3 Weapon Lock 1,Myrmidon/Swordmaster,Triangle Attack 1,Usage prohibited
+0xA4 Manakete Lock,Triangle Attack 1,Usage prohibited
+0xA5 Weapon Lock 1,Manakete Lock,Triangle Attack 1,Usage prohibited
+0xA6 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Usage prohibited
+0xA7 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Usage prohibited
+0xA8 Morphs,Triangle Attack 1,Usage prohibited
+0xA9 Weapon Lock 1,Morphs,Triangle Attack 1,Usage prohibited
+0xAA Myrmidon/Swordmaster,Morphs,Triangle Attack 1,Usage prohibited
+0xAB Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Triangle Attack 1,Usage prohibited
+0xAC Manakete Lock,Morphs,Triangle Attack 1,Usage prohibited
+0xAD Weapon Lock 1,Manakete Lock,Morphs,Triangle Attack 1,Usage prohibited
+0xAE Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 1,Usage prohibited
+0xAF Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 1,Usage prohibited
+0xB0 Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB1 Weapon Lock 1,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB2 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB3 Weapon Lock 1,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB4 Manakete Lock,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB5 Weapon Lock 1,Manakete Lock,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB6 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB7 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB8 Morphs,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xB9 Weapon Lock 1,Morphs,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xBA Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xBB Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xBC Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xBD Weapon Lock 1,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xBE Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xBF Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Usage prohibited
+0xC0 Triangle Attack 2,Usage prohibited
+0xC1 Weapon Lock 1,Triangle Attack 2,Usage prohibited
+0xC2 Myrmidon/Swordmaster,Triangle Attack 2,Usage prohibited
+0xC3 Weapon Lock 1,Myrmidon/Swordmaster,Triangle Attack 2,Usage prohibited
+0xC4 Manakete Lock,Triangle Attack 2,Usage prohibited
+0xC5 Weapon Lock 1,Manakete Lock,Triangle Attack 2,Usage prohibited
+0xC6 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 2,Usage prohibited
+0xC7 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 2,Usage prohibited
+0xC8 Morphs,Triangle Attack 2,Usage prohibited
+0xC9 Weapon Lock 1,Morphs,Triangle Attack 2,Usage prohibited
+0xCA Myrmidon/Swordmaster,Morphs,Triangle Attack 2,Usage prohibited
+0xCB Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Triangle Attack 2,Usage prohibited
+0xCC Manakete Lock,Morphs,Triangle Attack 2,Usage prohibited
+0xCD Weapon Lock 1,Manakete Lock,Morphs,Triangle Attack 2,Usage prohibited
+0xCE Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 2,Usage prohibited
+0xCF Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 2,Usage prohibited
+0xD0 Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD1 Weapon Lock 1,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD2 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD3 Weapon Lock 1,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD4 Manakete Lock,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD5 Weapon Lock 1,Manakete Lock,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD6 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD7 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD8 Morphs,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xD9 Weapon Lock 1,Morphs,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xDA Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xDB Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xDC Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xDD Weapon Lock 1,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xDE Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xDF Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 2,Usage prohibited
+0xE0 Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE1 Weapon Lock 1,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE2 Myrmidon/Swordmaster,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE3 Weapon Lock 1,Myrmidon/Swordmaster,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE4 Manakete Lock,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE5 Weapon Lock 1,Manakete Lock,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE6 Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE7 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE8 Morphs,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xE9 Weapon Lock 1,Morphs,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xEA Myrmidon/Swordmaster,Morphs,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xEB Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xEC Manakete Lock,Morphs,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xED Weapon Lock 1,Manakete Lock,Morphs,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xEE Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xEF Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF0 Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF1 Weapon Lock 1,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF2 Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF3 Weapon Lock 1,Myrmidon/Swordmaster,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF4 Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF5 Weapon Lock 1,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF6 Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF7 Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF8 Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xF9 Weapon Lock 1,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xFA Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xFB Weapon Lock 1,Myrmidon/Swordmaster,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xFC Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xFD Weapon Lock 1,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xFE Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited
+0xFF Weapon Lock 1,Myrmidon/Swordmaster,Manakete Lock,Morphs,Disable Unit Select,Triangle Attack 1,Triangle Attack 2,Usage prohibited

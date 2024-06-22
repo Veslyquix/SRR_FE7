@@ -17,8 +17,12 @@
 .endm
 
 .if FE6 == true 
+SET_FUNC UpdateMapViewWithFog, 0x801C6C5
+SET_DATA gVision, 0x202AA48+0x0D
 @SET_FUNC GetItemAttributes, fe7 0x801727c unk fe6 
 SET_FUNC GetItemAfterUse, 0x8016929 
+SET_FUNC FadeExists, 0x80145d1
+SET_DATA ProcScr_PrepUnitScreen, 0x8678E38
 SET_DATA gPaletteSyncFlag, 0x300000C
 SET_DATA gPaletteBuffer, 0x2021708
 SET_DATA gCursorX, 0x202AA1C
@@ -51,6 +55,11 @@ SET_DATA gActiveFont, 0x2027BCC
 SET_DATA gDefaultFont, 0x2027BB4
 SET_DATA sSpecialCharStList, 0x2027BD0
 SET_DATA gBmSt, 0x202AA08
+SET_DATA gCameraX, 0x202AA14
+SET_DATA gCameraY, 0x202AA16
+SET_DATA gObject_8x8, 0x85c39A0 
+SET_FUNC IsItemStealable, 0x8016D35
+SET_FUNC CallARM_PushToSecondaryOAM, 0x8003871
 SET_FUNC GetUnitAid, 0x80180FD
 SET_FUNC SetPopupNumber, 0x800d705 
 SET_FUNC GetPartyGoldAmount, 0x8020a59
@@ -83,16 +92,59 @@ SET_FUNC Text_DrawStringAscii, 0x80064b5
 SET_FUNC PutText, 0x8005ab5
 SET_FUNC GetLang, 0x800562d
 SET_DATA sMsgString, 0x2029404 
-SET_FUNC DecodeStringRam, 0x800384d
-
+SET_DATA u32MsgString, 0x2029404 
+SET_FUNC gARM_DecompText, 0x3003780
+SET_FUNC CallARM_DecompText, 0x800384d 
+SET_DATA gPrepUnitList, 0x200e6d4
+SET_DATA ProcScr_PalFade, 0x85C4D7C
+SET_DATA ProcScr_FadeCore, 0x85C4E14
+SET_DATA ProcScr_BmFadeIN, 0x8679008 
+SET_DATA ProcScr_BmFadeOUT, 0x8679028 
+SET_FUNC HbPopulate_SSCharacter, 0x80704DD
+SET_DATA ggMsgStringTable, 0x8013b10
+SET_FUNC GetChapterEventDataPointer, 0x802BBA1
+SET_FUNC GetUnitFromCharId, 0x8017ABD
+SET_FUNC GetUnitRescueName, 0x80185C9
+SET_FUNC Text_InsertDrawString, 0x8006455
+SET_FUNC LoadUnit, 0x8017599
+SET_FUNC ClearUnit, 0x8017395
+SET_FUNC ArenaIsUnitAllowed, 0x8029FE1
+SET_FUNC GetUnitBestWRankType, 0x8029965
+SET_DATA gProcScr_ArenaUiMain, 0x86911AC
+SET_FUNC SetupDebugFontForOBJ, 0x8005471
+SET_FUNC PrintDebugStringAsOBJ, 0x8005551
 .endif 
 .if FE7 == true 
+SET_FUNC SetupDebugFontForOBJ, 0x8005281
+SET_FUNC PrintDebugStringAsOBJ, 0x800530d
+SET_DATA gProcScr_ArenaUiMain, 0x8CE729C
+SET_DATA gMode, 0x202BBF8+0x1B
+SET_FUNC GetUnitBestWRankType, 0x802EAC1
+SET_FUNC ArenaIsUnitAllowed, 0x802F159
+SET_FUNC LoadUnit, 0x8017789 
+SET_FUNC ClearUnit, 0x8017509 
+SET_FUNC GetChapterEventDataPointer, 0x80315BD
+SET_FUNC GetUnitFromCharId, 0x8017D35
+SET_DATA ggMsgStringTable, 0x8012cb8
+SET_FUNC UpdateMapViewWithFog, 0x801DB59
+SET_DATA gVision, 0x202BBF8+0x0D
 SET_FUNC GetItemAttributes, 0x801727D
 SET_FUNC GetItemAfterUse, 0x8016731
+SET_FUNC FadeExists, 0x8013EB9
+SET_FUNC GetUnitFromPrepList, 0x808DD19
+SET_DATA ProcScr_PrepUnitScreen, 0x8CC4854
+SET_DATA ProcScr_PrepItemScreen, 0x8CC4448
 SET_DATA gPaletteSyncFlag, 0x300000D 
 SET_DATA gPaletteBuffer, 0x2022860
 SET_DATA gCursorX, 0x202BBCC
 SET_DATA gCursorY, 0x202BBCE
+SET_DATA gBmSt, 0x202BBB8
+SET_DATA gCameraX, 0x202BBC4
+SET_DATA gCameraY, 0x202BBC6
+SET_DATA gObject_8x8, 0x8B905B0 
+SET_FUNC IsItemStealable, 0x8016D39
+SET_FUNC CallARM_PushToSecondaryOAM, 0x8004389
+SET_FUNC CallEndEvent, 0x8079A39 
 SET_DATA BattleAttackerSideBool, 0x203E014
 SET_DATA gBmMapUnit, 0x202E3DC
 SET_DATA gProcScr_StatScreen, 0x8CC1F6C
@@ -101,7 +153,9 @@ SET_DATA gProcScr_UnitDisplay_MinimugBox, 0x8CC2C60
 SET_DATA sFaceConfig, 0x202A58C
 SET_DATA gFaces, 0x30041C0
 SET_DATA gBattleActor, 0x203A3F0  
+SET_DATA gBattleActorUnit, 0x203A3F0  
 SET_DATA gBattleTarget, 0x203A470
+SET_DATA gBattleTargetUnit, 0x203A470
 SET_FUNC GetUnitPortraitId, 0x8018BD9
 SET_FUNC UnpackUiVArrowGfx, 0x80B1F6D
 SET_FUNC DisplayUiVArrow, 0x80B1FB1 
@@ -146,12 +200,34 @@ SET_FUNC StartMapSongBgm, 0x8015F85
 SET_FUNC EndAllMenus, 0x804A491
 SET_FUNC RenderBmMap, 0x8019505 
 SET_FUNC RefreshBMapGraphics, 0x802E369
+SET_DATA ProcScr_PalFade, 0x8B92914
+SET_DATA ProcScr_FadeCore, 0x8B929AC
+SET_DATA ProcScr_BmFadeIN, 0x8CE4C50 
+SET_DATA ProcScr_BmFadeOUT, 0x8CE4C80 
+SET_DATA sMsgString, 0x202A5B4 
+SET_DATA u32MsgString, 0x202A5B4 
+
+SET_FUNC gARM_DecompText, 0x3003940 
+SET_FUNC CallARM_DecompText, 0x8004365 
+SET_FUNC HbPopulate_SSCharacter, 0x80816FD 
+
 .endif 
 .if FE8 == true 
+SET_DATA ggMsgStringTable, 0x800a2a0 
+SET_DATA u32MsgString, 0x0202A6AC
+SET_FUNC gARM_DecompText, 0x3004150 
+SET_FUNC CallARM_DecompText, 0x8002ba5 
+SET_DATA gVision, 0x202BCF0+0x0D
+SET_DATA gBattleActorUnit, 0x0203A4EC
+SET_DATA gBattleTargetUnit, 0x0203A56C
+
 SET_DATA gPaletteSyncFlag, 0x300000E 
 SET_DATA gPaletteBuffer, 0x20228A8
 SET_DATA gCursorX, 0x202BCB0+0x14 
 SET_DATA gCursorY, 0x202BCB0+0x16
+SET_DATA gCameraX, 0x202BCB0+0xC
+SET_DATA gCameraY, 0x202BCB0+0xE
+
 SET_DATA BattleAttackerSideBool, 0x203E108
 SET_DATA SaveMenuProc, 0x8A200B8 @ fe8 
 SET_DATA DifficultySelectionProc, 0x8A20A10 @ fe8 
@@ -171,9 +247,9 @@ dat 0x08592300, PopupScr_GotGold
 dat 0x08592348, PopupScr_GoldWasStole
 SET_FUNC UnitLoadStatsFromCharacter, 0x8017e35 
 SET_FUNC __aeabi_idiv,    __divsi3
-SET_FUNC __aeabi_idivmod, __modsi3
-SET_FUNC Div, __divsi3
-SET_FUNC Mod, __modsi3
+@SET_FUNC __aeabi_idivmod, __modsi3
+@SET_FUNC Div, __divsi3
+@SET_FUNC Mod, __modsi3
 SET_DATA weatherId, 0x202BD05
 SET_DATA gPlaySt, 0x202BCF0
 SET_DATA gCh, 0x202BCFE
@@ -187,8 +263,8 @@ SET_FUNC UnsetFlag, 0x8083d95
 
 .if FE6 == true
 SET_FUNC __aeabi_idiv, 0x809DCE1 
-SET_FUNC Div, 0x809DCE1
-SET_FUNC Mod, 0x809DCE5
+@SET_FUNC Div, 0x809DCE1
+@SET_FUNC Mod, 0x809DCE5
 SET_FUNC SetFlag, 0x806BA49
 SET_FUNC UnsetFlag, 0x806BA75
 SET_FUNC CheckFlag, 0x806bA5D
@@ -310,6 +386,8 @@ SET_DATA gBG3TilemapBuffer, 0x2023308
 SET_DATA sKeyStatusBuffer, 0x2023B20
 SET_DATA gStatScreen, 0x2003108 @ for text handles 
 SET_DATA gUiTmScratchA, 0x2003238 @ might be wrong 
+SET_DATA gUiTmScratchC, 0x2003C38 
+SET_FUNC DrawStatBarGfx, 0x806E999
 SET_DATA gActiveUnit, 0x30044B0
 @ 202AA08 gBmSt https://github.com/StanHash/fe6/blob/5430c7ea15313a5754ddb466916b1d2946e72c4a/include/bm.h#L90C8-L90C12
 @ 801E2C0	801FFE0	801FB78	0	0	ChapterIntro_InitMapDisplay
@@ -323,14 +401,16 @@ SET_DATA sPrevHandScreenPosition, 0x203C9D4
 SET_DATA gLCDControlBuffer, 0x30026B0
 SET_DATA ProcScr_GotItem, 0x85C4934 @ maybe 
 SET_FUNC StartBlockingPrepShop, 0x8095df1
+SET_FUNC ApplyUnitDefaultPromotion, 0x8029819
 .endif
 
 
 .if FE7 == true 
+SET_FUNC ApplyUnitDefaultPromotion, 0x8029819
 SET_DATA TacticianName, 0x202BC18
 SET_FUNC __aeabi_idiv, 0x80BFA15 
-SET_FUNC Div, 0x80BFA15
-SET_FUNC Mod, 0x80BFA19
+@SET_FUNC Div, 0x80BFA15
+@SET_FUNC Mod, 0x80BFA19
 SET_FUNC SetFlag, 0x80798E5 
 SET_FUNC UnsetFlag, 0x8079911 
 SET_FUNC CheckFlag, 0x80798F9
@@ -449,17 +529,16 @@ SET_FUNC PageNumCtrl_DisplayBlinkIcons, 0x8080F55
 SET_FUNC GetUnitAid, 0x8018451
 SET_FUNC DrawIcon, 0x8004e29
 SET_FUNC GetUnitAidIconId, 0x8018579
-SET_FUNC GetUnitRescueName, 0x8018CC1
+SET_FUNC GetUnitRescueName, 0x8018CC1 
 SET_FUNC GetUnitStatusName, 0x8018CF1
 SET_FUNC DisplayBwl, 0x807FBF1
-SET_FUNC Text_InsertDrawString, 0x8005B19
+SET_FUNC Text_InsertDrawString, 0x8005B19 
 SET_FUNC GetUnitAffinityIcon, 0x8026B25 
 SET_DATA sPage0TextInfo, 0x84049A0
 SET_DATA gObject_8x8, 0x8B905B0
 
 SET_FUNC Decompress, 0x8013169 
 SET_DATA gBuf, 0x2020140
-SET_DATA gUiTmScratchB, 0x200373C 
 @SET_DATA Tsa_StatScreenPage0, 0x83FCA4C 
 SET_FUNC TmApplyTsa, 0x80C57B5 
 
@@ -470,6 +549,9 @@ SET_DATA gBG3TilemapBuffer, 0x2024460
 SET_DATA sKeyStatusBuffer, 0x2024C78
 SET_DATA gStatScreen, 0x200310C @ for text handles 
 SET_DATA gUiTmScratchA, 0x200323C 
+SET_DATA gUiTmScratchB, 0x200373C 
+SET_DATA gUiTmScratchC, 0x2003C3C 
+SET_FUNC DrawStatBarGfx, 0x807F849 @ 806E998
 SET_DATA gLCDControlBuffer, 0x3002870
 SET_DATA ProcScr_GotItem, 0x8B91DC4
 SET_DATA gActiveUnit, 0x3004690

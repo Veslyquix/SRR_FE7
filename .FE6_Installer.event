@@ -19,6 +19,8 @@
 	#endif 
 #endif 
 
+#inctbl "FE6TR" "EventAssembler/fe6_tr.tbl"
+
 //#define JankyPalettes // Uncomment if you want to always use char palettes, even with classes randomized 
 
 //#define NeverRandomizeMusic // comment this out if you want music randomized 
@@ -30,8 +32,9 @@ WORD 0 // If 0, it'll read through your item editor and count
 MaxClasses_Link:
 WORD 0 // If 0, it'll read through your class editor and count
 // until it finds a class with an ID that does not match (eg. says 0) 
-
-ALIGN 4 
+ALIGN 4
+BonusItemChance: 
+WORD 10
 CasualModeFlag:
 WORD 0x8C 
 RandomizePrepShop:
@@ -46,6 +49,9 @@ ClassBasedGrowths:
 WORD 0
 CombinedGrowths:
 WORD 0
+#define statCap 60 
+maxStat:
+WORD statCap 
 
 // Each shop will have one of these items at random
 RareItemTableSize:
@@ -106,184 +112,242 @@ NeverChangeFromItem(0x42) // Apocalypse
 //NeverChangeFromItem(0x71) // Eckesachs  
 NeverChangeFromItem(0x77) // Saint's staff 
 NeverChangeIntoItem(0x4F) // useless staff "Makes closed areas visible." 
+NeverChangeIntoItem(0x53) // glitchy animation & unbreakable dragonstone with high stats 
+// manaketes will always get the divinestone I guess 
+NeverChangeIntoItem(0x55) // crashes animations 
+NeverChangeIntoItem(0x70) // crashes animations 
+
+NeverChangeChar(0xE1) // arena enemy randomized breaks things 
+
+#ifdef VeslyBuildfile
+	#define SetName(id) "{ addr: ; setText(id, addr) ; }"
+#else 
+	#define SetName(id) "ALIGN 32"
+#endif 
+
 
 ALIGN 4 
 SeedText: 
-BYTE 0xCD 0xFE 0x61 0x2F 0x00 0x00 00 00 00 00 
+STRING "Seed" "FE6TR" ; BYTE 0
 VarianceText: 
-BYTE 0x5D 0x8F 0x9C 0x2D 0xC8 0x7C 0x2F 00 0 0 
+STRING "Variance" "FE6TR" ; BYTE 0
+CharactersText: 
+STRING "Characters" "FE6TR" ; BYTE 0 0 
 BaseStatsText: 
-BYTE 0x3D 0x64 0x7D 0x9A 0xB9 0xF8 0xEA 0x05 0x00 0x00
+STRING "Base Stats" "FE6TR" ; BYTE 0
 GrowthsText: 
-BYTE 0x5D 0x1C 0xB5 0x7D 0xAC 0x5E 0x00 0x00
+STRING "Growths" "FE6TR" ; BYTE 0
 LevelupsText:
-BYTE $64 $9F $FD $85 $77 $56 $2F $00 $00 $00 $00 $00
+STRING "Levelups" "FE6TR" ; BYTE 0
 StatCapsText: 
-BYTE 0xCD 0x5C 0x3C 0x2C 0x4A 0x67 0xF5 0x02 0x00 0x00
+STRING "Stat Caps" "FE6TR" ; BYTE 0
 ClassText: 
-BYTE 0x2C 0x16 0x59 0xAB 0x17 0x00 0x00 0x00
+STRING "Class" "FE6TR" ; BYTE 0
 ItemsText: 
-BYTE 0x6D 0xFF 0x7A 0xF5 0x02 0x00 0x00
+STRING "Items" "FE6TR" ; BYTE 0
 ModeText: 
-BYTE 0x64 0x14 0x7E 0x2F 0x00 0x00 0x00 0x00
+STRING "Mode" "FE6TR" ; BYTE 0
 MusicText:
-BYTE $64 $F8 $DA $4C $2F $00 $00 $00 $00 $00 $00 $00
+STRING "Music" "FE6TR" ; BYTE 0
 ColoursText:
-BYTE $2C $6A $51 $7E $56 $2F $00 $00 $00 $00 $00 $00
+STRING "Colours" "FE6TR" ; BYTE 0
 ItemDurabilityText:
-BYTE $6D $FF $3A $D6 $F8 $91 $D6 $2E $DB $41 $2F $00 $00 $00 $00 $00
+STRING "Item Durability" "FE6TR" ; BYTE 0
 PlayerBonusText:
-BYTE $CD $15 $01 $7F $D2 $43 $91 $AF $5E $00 $00 $00 $00 $00 $00 $00
+STRING "Player Bonus" "FE6TR" ; BYTE 0
 EnemyDiffBonusText: 
-BYTE 0xA4 0xF0 0x6B 0x10 0x6B 0x9B 0x20 0x6E 0x7A 0x28 0xF2 0xD5 0x0B 0x00 0x00 0x00
+STRING "Enemy Diff. Bonus" "FE6TR" ; BYTE 0
 RandomizerText: 
-BYTE $FD $09 $42 $AD $77 $FF $FD $E9 $05 $00 $00 $00 $00
-
+STRING "Randomizer" "FE6TR" ; BYTE 0
+FogText:
+STRING "Fog" "FE6TR" ; BYTE 0
+SkipChapterText:
+STRING "Skip Chapter" "FE6TR" ; BYTE 0
 
 ALIGN 16 
 Option0:
 FILL(16 * 21) 
 ORG Option0 
-ALIGN 16; BYTE $C6 $A1 $7F $2F $98 $EB $05 // 0% 
-ALIGN 16; BYTE $2C $83 $FE $BD $60 $AE $17 // 5%
-ALIGN 16; BYTE $2C $A8 $71 $E8 $DF $0B $E6 $7A $01 // 10%
-ALIGN 16; BYTE $2C $28 $CB $A0 $7F $2F $98 $EB $05 // etc. 
-ALIGN 16; BYTE $C6 $09 $E3 $D0 $BF $17 $CC $F5 $02 
-ALIGN 16; BYTE $C6 $09 $96 $41 $FF $5E $30 $D7 $0B
-ALIGN 16; BYTE $D6 $33 $E3 $D0 $BF $17 $CC $F5 $02
-ALIGN 16; BYTE $D6 $33 $96 $41 $FF $5E $30 $D7 $0B
-ALIGN 16; BYTE $D6 $3B $C6 $A1 $7F $2F $98 $EB $05
-ALIGN 16; BYTE $D6 $3B $2C $83 $FE $BD $60 $AE $17
-ALIGN 16; BYTE $2C $03 $E3 $D0 $BF $17 $CC $F5 $02
-ALIGN 16; BYTE $2C $03 $96 $41 $FF $5E $30 $D7 $0B
-ALIGN 16; BYTE $FD $7B $8C $43 $FF $5E $30 $D7 $0B
-ALIGN 16; BYTE $FD $7B $58 $06 $FD $7B $C1 $5C $2F
-ALIGN 16; BYTE $5D $B3 $C6 $A1 $7F $2F $98 $EB $05
-ALIGN 16; BYTE $5D $B3 $2C $83 $FE $BD $60 $AE $17
-ALIGN 16; BYTE $A4 $F7 $C6 $A1 $7F $2F $98 $EB $05
-ALIGN 16; BYTE $A4 $F7 $2C $83 $FE $BD $60 $AE $17
-ALIGN 16; BYTE $FD $CB $C6 $A1 $7F $2F $98 $EB $05
-ALIGN 16; BYTE $FD $CB $2C $83 $FE $BD $60 $AE $17
-ALIGN 16; BYTE $2C $A8 $71 $30 $0E $FD $7B $C1 $5C $2F
+ALIGN 16; STRING "0%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "5%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "10%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "15%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "20%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "25%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "30%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "35%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "40%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "45%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "50%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "55%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "60%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "65%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "70%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "75%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "80%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "85%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "90%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "95%" "FE6TR" ; BYTE 0 
+ALIGN 16; STRING "100%" "FE6TR" ; BYTE 0 
 
-ALIGN 16
+
+ALIGN 64
 Option1:
-FILL(16*2)
+FILL(64*5)
 ORG Option1
-ALIGN 16; BYTE 0x5D 0x8F 0xE0 0x2E 0x45 0x7A 0x01 
-ALIGN 16; BYTE 0xFD 0x09 0x42 0xAD 0x7B 0x01 
+ALIGN 64; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Players reordered" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Bosses reordered" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Players & Bosses reordered" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Players and Bosses swap" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Random" "FE6TR" ; BYTE 0
 
-ALIGN 16
+
+ALIGN 64
 Option2:
-FILL(16*4)
+FILL(32*2)
 ORG Option2
-ALIGN 16; BYTE 0x5D 0x8F 0xE0 0x2E 0x45 0x7A 0x01 
-ALIGN 16; BYTE 0xFD 0x09 0x42 0xAD 0x7B 0x01 
-ALIGN 16; BYTE $C6 $A1 $7F $2F $98 $EB $05 // 0% 
-ALIGN 16; BYTE $2C $A8 $71 $30 $0E $FD $7B $C1 $5C $2F 
-
-ALIGN 16
-Option3:
-FILL(16*3)
-ORG Option3
-ALIGN 16; BYTE 0x5D 0x8F 0xE0 0x2E 0x45 0x7A 0x01 
-ALIGN 16; BYTE $3D $64 $3D $8C $62 $D6 $3F $EC $05
-ALIGN 16; BYTE $A4 $6D $EB $3F $EC $05
-
-ALIGN 16
-Option4:
-FILL(16*3)
-ORG Option4
-ALIGN 16; BYTE 0x5D 0x8F 0xE0 0x2E 0x45 0x7A 0x01 
-ALIGN 16; BYTE 0xFD 0x09 0x42 0xAD 0x7B 0x01 
-ALIGN 16; BYTE 0x24 0xC5 0x16 0xB0 0x62 0x3D 0x33 0x0E 0xBD
-
-ALIGN 16
-Option5:
-FILL(16*4)
-ORG Option5
-ALIGN 16; BYTE 0x5D 0x8F 0xE0 0x2E 0x45 0x7A 0x01 
-ALIGN 16; BYTE 0xFD 0x09 0x42 0xAD 0x7B 0x01 
-ALIGN 16; BYTE $FD $09 $42 $AD $43 $E8 $49 $A7 $08 $F8 $B3 $7A $01
-ALIGN 16; BYTE $FD $09 $42 $AD $43 $E8 $C9 $E3 $D7 $FB $57 $2F
-
-ALIGN 16
-Option6:
-FILL(16*4)
-ORG Option6
-ALIGN 16; BYTE 0x5D 0x8F 0xE0 0x2E 0x45 0x7A 0x01 
-ALIGN 16; BYTE 0xFD 0x09 0x42 0xAD 0x7B 0x01 
-ALIGN 16; BYTE 0xA4 0x29 0x47 0x98 0xED 0x5F 0xAF 0x28 0x16 0xD0 0x0B
-ALIGN 16; BYTE 0x6D 0xFF 0x3A 0xCB 0xC5 0x57 0x14 0x0B 0xE8 0x05
-
-ALIGN 16
-Option7:
-FILL(16*2)
-ORG Option7
-ALIGN 16; BYTE 0x2C 0x16 0x59 0x6B 0x33 0xBD
-ALIGN 16; BYTE 0x2C 0xCA 0xE2 0x52 0x7A 0x01
-
-ALIGN 16
-Option8:
-FILL(16*2)
-ORG Option8
-ALIGN 16; BYTE $5D $8F $E0 $2E $45 $D2 $A3 $0B $32 $BD
-ALIGN 16; BYTE $FD $09 $42 $AD $D3 $A3 $0B $32 $BD
-
-ALIGN 16
-Option9:
-FILL(16*4)
-ORG Option9
-ALIGN 16; BYTE $5D $8F $E0 $2E $45 $C2 $A2 $16 $E5 $67 $F5 $02
-ALIGN 16; BYTE $FD $09 $42 $AD $7B $01
-ALIGN 16; BYTE $D6 $43 $D0 $00 $7A $01
-ALIGN 16; BYTE $CD $E9 $F1 $23 $DB $57 $14 $0B $E8 $05
-
-ALIGN 16
-Option10:
-FILL(16*2)
-ORG Option10
-ALIGN 16; BYTE 0x5D 0x8F 0xE0 0x2E 0x45 0x7A 0x01 
-ALIGN 16; BYTE $6D $24 $36 $6E $FF $5E
-
-ALIGN 21
-Option11:
-Option12:
-FILL(32*21)
-ORG Option11
-ALIGN 21; BYTE 0x5D 0x8F 0xE0 0x2E 0x45 0x7A 0x01 
-ALIGN 21; BYTE $5D $D3 $2C $68 $C6 $86 $F0 $31 $E5 $D9 $5F $7A $01
-ALIGN 21; BYTE $5D $D3 $C6 $89 $8C $0D $E1 $63 $CA $B3 $BF $AC $5E
-ALIGN 21; BYTE $5D $D3 $D6 $B3 $8C $0D $E1 $63 $CA $B3 $BF $AC $5E
-ALIGN 21; BYTE $5D $D3 $D6 $3B $19 $1B $C2 $C7 $94 $67 $7F $59 $BD
-ALIGN 21; BYTE $5D $D3 $2C $83 $8C $0D $E1 $63 $CA $B3 $BF $AC $5E
-ALIGN 21; BYTE $5D $D3 $FD $7B $32 $36 $84 $8F $29 $CF $FE $B2 $7A $01
-ALIGN 21; BYTE $5D $D3 $5D $B3 $19 $1B $C2 $C7 $94 $67 $7F $59 $BD
-ALIGN 21; BYTE $5D $D3 $A4 $F7 $19 $1B $C2 $C7 $94 $67 $7F $59 $BD
-ALIGN 21; BYTE $5D $D3 $FD $CB $19 $1B $C2 $C7 $94 $67 $7F $59 $BD
-ALIGN 21; BYTE $5D $D3 $2C $A8 $71 $C8 $D8 $10 $3E $A6 $3C $FB $CB $EA $05
-ALIGN 21; BYTE $5D $D3 $2C $28 $0B $9A $B1 $21 $7C $4C $79 $F6 $97 $D5 $0B
-ALIGN 21; BYTE $5D $D3 $2C $A8 $71 $22 $63 $43 $F8 $98 $F2 $EC $2F $AB $17
-ALIGN 21; BYTE $5D $D3 $2C $A8 $F5 $2C $63 $43 $F8 $98 $F2 $EC $2F $AB $17
-ALIGN 21; BYTE $5D $D3 $2C $A8 $F5 $4E $C6 $86 $F0 $31 $E5 $D9 $5F $56 $2F
-ALIGN 21; BYTE $5D $D3 $2C $28 $CB $20 $63 $43 $F8 $98 $F2 $EC $2F $AB $17
-ALIGN 21; BYTE $5D $D3 $2C $68 $FF $9E $8C $0D $E1 $63 $CA $B3 $BF $AC $5E
-ALIGN 21; BYTE $5D $D3 $2C $68 $D7 $6C $C6 $86 $F0 $31 $E5 $D9 $5F $56 $2F
-ALIGN 21; BYTE $5D $D3 $2C $28 $E9 $7D $C6 $86 $F0 $31 $E5 $D9 $5F $56 $2F
-ALIGN 21; BYTE $5D $D3 $2C $68 $FF $72 $C6 $86 $F0 $31 $E5 $D9 $5F $56 $2F
-ALIGN 21; BYTE $5D $D3 $C6 $09 $E3 $90 $B1 $21 $7C $4C $79 $F6 $97 $D5 $0B
-ALIGN 21; BYTE $D6 $61 $41 $8D $43 $C6 $86 $F0 $31 $E5 $D9 $5F $56 $2F
-ALIGN 21; BYTE $D6 $E9 $5F $CE $D8 $10 $3E $A6 $3C $FB $CB $EA $05
-ALIGN 21; BYTE $D6 $21 $BD $CF $D8 $10 $3E $A6 $3C $FB $CB $EA $05
-ALIGN 21; BYTE $D6 $E9 $9A $CD $D8 $10 $3E $A6 $3C $FB $CB $EA $05
-ALIGN 21; BYTE $E9 $DF $93 $B1 $21 $7C $4C $79 $F6 $97 $D5 $0B 
-ALIGN 21; BYTE $D6 $61 $19 $64 $6C $08 $1F $53 $9E $FD $65 $F5 $02
-ALIGN 21; BYTE $D6 $B1 $DE $C9 $D8 $10 $3E $A6 $3C $FB $CB $EA $05
-ALIGN 21; BYTE $D6 $B1 $9E $65 $6C $08 $1F $53 $9E $FD $65 $F5 $02
-ALIGN 21; BYTE $D6 $31 $4E $64 $6C $08 $1F $53 $9E $FD $65 $F5 $02
-ALIGN 21; BYTE $D6 $61 $41 $33 $36 $84 $8F $29 $CF $FE $D2 $0B
+ALIGN 32; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Random" "FE6TR" ; BYTE 0
 
 ALIGN 32
+Option3:
+FILL(32*5)
+ORG Option3
+ALIGN 32; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Random" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "0%" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "100%" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "50%" "FE6TR" ; BYTE 0
+
+ALIGN 32
+Option4:
+FILL(32*3)
+ORG Option4
+ALIGN 32; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Based on seed" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Fixed" "FE6TR" ; BYTE 0
+ALIGN 32
+Option5:
+FILL(32*3)
+ORG Option5
+ALIGN 32; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Random" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "0" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "15" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "30" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "45" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "60" "FE6TR" ; BYTE 0
+
+
+ALIGN 64
+Option6:
+FILL(64*4)
+ORG Option6
+ALIGN 64; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Random" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Random for players" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Random for enemies" "FE6TR" ; BYTE 0
+
+ALIGN 64
+Option7:
+FILL(64*4)
+ORG Option7
+ALIGN 64; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Random" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Found items only" "FE6TR" ; BYTE 0
+ALIGN 64; STRING "Item stats only" "FE6TR" ; BYTE 0
+
+ALIGN 64
+Option8:
+FILL(32*2)
+ORG Option8
+ALIGN 32; STRING "Classic" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Casual" "FE6TR" ; BYTE 0
+
+ALIGN 32
+Option9:
+FILL(32*2)
+ORG Option9
+ALIGN 32; STRING "Vanilla BGM" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Random BGM" "FE6TR" ; BYTE 0
+
+ALIGN 32
+Option10:
+FILL(32*4)
+ORG Option10
+ALIGN 32; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Random" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Janky" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Portraits only" "FE6TR" ; BYTE 0
+
+ALIGN 48
+Option11:
+FILL(48*3)
+ORG Option11
+ALIGN 48; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 48; STRING "Infinite weapons" "FE6TR" ; BYTE 0
+ALIGN 48; STRING "Infinite items" "FE6TR" ; BYTE 0
+
+ALIGN 42
+Option12:
+Option13:
+FILL(32*42)
+ORG Option12
+ALIGN 42; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+1 hidden level" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+2 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+3 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+4 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+5 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+6 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+7 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+8 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+9 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+10 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+11 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+12 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+13 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+14 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+15 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+16 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+17 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+18 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+19 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "+20 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-10 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-9 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-8 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-7 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-6 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-5 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-4 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-3 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-2 hidden levels" "FE6TR" ; BYTE 0
+ALIGN 42; STRING "-1 hidden level" "FE6TR" ; BYTE 0
+BYTE 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ALIGN 32
+Option14:
+FILL(32*3)
+ORG Option14
+ALIGN 32; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Always off" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Always on" "FE6TR" ; BYTE 0
+
+ALIGN 32
+Option15:
+FILL(32*2)
+ORG Option15
+ALIGN 32; STRING "Vanilla" "FE6TR" ; BYTE 0
+ALIGN 32; STRING "Press A" "FE6TR" ; BYTE 0
+
+ALIGN 32
+TalkText: 
+STRING "Talk" "FE6TR" ; BYTE 0
+TrvText: 
+STRING "Trv" "FE6TR" ; BYTE 0
+
 MovText:
 BYTE $64 $94 $DD $0B $00 $00 $00 $00 
 HpText:
@@ -311,16 +375,40 @@ setTextWithHuffman(0xB80, MovText)
 setTextWithHuffman(0xB81, HpText)
 setTextWithHuffman(0xB82, MinusText)
 
+ALIGN 4 
+VramDest_DebugFont: 
+WORD 0xd800 // in glowy or 0x3000 ? // 0x4800 
 
 PUSH 
+
+ORG $31740 //$37D84
+jumpToHack(MaybeChargeAtPlayer)
+
+ORG $9B54C
+jumpToHack(TitleScreen_FE6) 
+
+ORG $881CC
+jumpToHack(SaveScreen_FE6) 
 
 // roy can seize? 
 //Character Editor  (UnitFE6Form) @01 Roy2024-04-04 8:24:40 PM
 ORG $6076D0
 BYTE  $EC $07 $B9 $04 $01 $01 $02 $00 $00 $01 $01 $01 $00 $02 $02 $03 $00 $00 $07 $00 $00 $00 $00 $00 $00 $00 $00 $00 $50 $28 $32 $28 $19 $1E $3C $01 $01 $00 $00 $1F $00 $20 $01 $00 $98 $20 $66 $08;
 
-ORG $6D0F0 // from 6D0E4
-SHORT $2100 // No equipped item during Roy's forced promotion 
+//Character Editor  (UnitFE6Form) @66 Idunn2024-05-14 9:31:50 AM
+ORG $6089C0
+BYTE  $4D $08 $0E $05 $66 $3C $BE $00 $00 $00 $00 $14 $26 $04 $03 $0B $02 $00 $12 $00 $00 $00 $00 $00 $00 $00 $00 $00 $64 $64 $64 $64 $64 $64 $64 $00 $00 $00 $00 $00 $00 $41 $00 $01 $00 $00 $00 $00;
+// make Idunn a promoted unit with 100% growths 
+
+
+ORG $6D0E6 // from 6D0E4
+SHORT $46C0 
+callHackNew(RoyPromoHook)
+SHORT $46C0 
+ORG $675FCC
+//BYTE $02 $00 $00 $00 $01 $00 $00 $00
+//ORG $6D0F0 
+//SHORT $2100 // No equipped item during Roy's forced promotion 
 
 ORG $1F524 
 jumpToHack(FE6_SeizeCantoFix) 
@@ -398,7 +486,7 @@ BYTE $20 // never hard mode for prep ?
 
 
 // Antihuffman 
-ORG 0x384c;  BYTE $03 $B5 $02 $B0 $C2 $0F $00 $2A $01 $D0 $05 $4A $97 $46 $03 $4A $12 $68 $9A $F0 $5B $FB $01 $BC $00 $47 $00 $00 $80 $37 $00 $03 $60 $C4 $2D $08
+//ORG 0x384c;  BYTE $03 $B5 $02 $B0 $C2 $0F $00 $2A $01 $D0 $05 $4A $97 $46 $03 $4A $12 $68 $9A $F0 $5B $FB $01 $BC $00 $47 $00 $00 $80 $37 $00 $03 $60 $C4 $2D $08
 ORG $2dc460; BYTE $80 $23 $1B $06 $C0 $1A $02 $78 $0A $70 $01 $31 $01 $30 $00 $2A $F9 $D1 $01 $4A $97 $46 $00 $00 $62 $38 $00 $08
 
 // in A200B8 fe8 / CE3C54 fe7 / 
@@ -414,7 +502,48 @@ ORG 0x1514
 callHackNew(RandColoursHook)
 SHORT 0x46C0
 
+ORG $2EF4C 
+callHackNew(MakeStolenItemDroppable_FE6)
+
+ORG $22EAC
+BYTE 30 // Support range 
+
+// PutUnitSpriteIconsOam fe6/7/8 8022378 8025B54 80275E8
+ORG $2257C // ORG $25E04 FE7 // jumpToHack
+jumpToHack(DisplayStealOrDropIcon_FE6)
+
+ORG $a564 // in 7854 // fe7 8008E34 fe6 800a4f4
+callHackNew(HookLoadFace_FE6)
+
+// 8010f5c EvtCmd_WmPutFace
+ORG $1102C
+callHackNew(HookWMStartFace_FE6)
+
+ORG $184F0
+jumpToHack(GetUnitPortraitId_FE7)  // same code 
+// 80192F4	GetUnitChibiId // fe7 8018BF4 fe6 8018500
+ORG $18500 
+jumpToHack(GetUnitMiniPortraitId_FE7) // same code 
+
+
+ORG $5d9ac
+callHackNew(GetBattleLevelUpPortraitId_FE6)
+
+// at 74B98 from 74a28 - fe6 8067E84
+ORG $67fec 
+callHackNew(GetMapLevelUpPortraitId_FE6)
+
 POP 
+
+ALIGN 4 
+ReplacePortraitTable:
+FILL(256) 
+
+#define ReplacePortraitEntry(id, newID) "PUSH; ORG ReplacePortraitTable + id; BYTE newID; POP" 
+
+#ifdef VeslyBuildfile
+ReplacePortraitEntry(0xBF, 0x58) // Hector  
+#endif 
 
 ALIGN 4
 DIS_matrixTable:
@@ -422,6 +551,25 @@ DIS_matrixTable:
 ALIGN 4 
 NeverRandomizeColours:
 WORD 0
+PortraitColoursPastThisAreNotSkin:
+WORD 5 // vanilla portraits use the first few colours for skin 
+IncludeMonstersWithoutWEXP:
+WORD 0 
+
+ALIGN 4 
+SkillExceptions:
+FILL 256*2
+
+NumberOfSkills:
+WORD 0xE3
+DisplayRandomSkillsOption:
+WORD 0
+ALIGN 4 
+VanillaSkill:
+FILL 256 
+ALIGN 4 
+AlwaysSkillTable:
+FILL 256 
 
 ALIGN 4 
 NewChMenu: 
@@ -485,6 +633,8 @@ WORD 250 // make this 125 if you like
 ALIGN 4
 IconOrr:
 WORD IconOrrValue
+SRR_TotalOptions:
+WORD 16
 
 // if you don't have a max hp getter, these are used 
 PlayerMaxHP:
@@ -517,5 +667,244 @@ MaxItems:
 WORD 0x203D97C
 MaxClasses:
 WORD 0x203D97D
+RecruitValues:
+WORD 0x203D97E
+AlwaysSkill:
+WORD 0x203D97F 
 
+ALIGN 32
+NameStrings: 
+FILL(32*256)
+ORG NameStrings
+ALIGN 32 ; SetName(0x07EC); STRING "Roy" "FE6TR" ;
+ALIGN 32 ; SetName(0x07ED); STRING "Clarine" "FE6TR" ;
+ALIGN 32 ; SetName(0x07EE); STRING "Fae" "FE6TR" ;
+ALIGN 32 ; SetName(0x07EF); STRING "Sin" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F0); STRING "Sue" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F1); STRING "Dayan" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F2); STRING "Dayan" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F3); STRING "Barthe" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F4); STRING "Bors" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F5); STRING "Gwendolyn" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F6); STRING "Douglas" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F7); STRING "Douglas" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F8); STRING "Wolt" "FE6TR" ;
+ALIGN 32 ; SetName(0x07F9); STRING "Dorothy " "FE6TR" ;
+ALIGN 32 ; SetName(0x07FA); STRING "Klein" "FE6TR" ;
+ALIGN 32 ; SetName(0x07FB); STRING "Saul" "FE6TR" ;
+ALIGN 32 ; SetName(0x07FC); STRING "Elen" "FE6TR" ;
+ALIGN 32 ; SetName(0x07FD); STRING "Yoder" "FE6TR" ;
+ALIGN 32 ; SetName(0x07FE); STRING "Yoder" "FE6TR" ;
+ALIGN 32 ; SetName(0x07FF); STRING "Chad" "FE6TR" ;
+ALIGN 32 ; SetName(0x0800); STRING "Karel" "FE6TR" ;
+ALIGN 32 ; SetName(0x0801); STRING "Fir" "FE6TR" ;
+ALIGN 32 ; SetName(0x0802); STRING "Rutger" "FE6TR" ;
+ALIGN 32 ; SetName(0x0803); STRING "Dieck" "FE6TR" ;
+ALIGN 32 ; SetName(0x0804); STRING "Ogier" "FE6TR" ;
+ALIGN 32 ; SetName(0x0805); STRING "Garrett" "FE6TR" ;
+ALIGN 32 ; SetName(0x0806); STRING "Alen" "FE6TR" ;
+ALIGN 32 ; SetName(0x0807); STRING "Lance" "FE6TR" ;
+ALIGN 32 ; SetName(0x0808); STRING "Perceval" "FE6TR" ;
+ALIGN 32 ; SetName(0x0809); STRING "Igrene" "FE6TR" ;
+ALIGN 32 ; SetName(0x080A); STRING "Marcus" "FE6TR" ;
+ALIGN 32 ; SetName(0x080B); STRING "Astolfo" "FE6TR" ;
+ALIGN 32 ; SetName(0x080C); STRING "Ward" "FE6TR" ;
+ALIGN 32 ; SetName(0x080D); STRING "Lot" "FE6TR" ;
+ALIGN 32 ; SetName(0x080E); STRING "Bartre" "FE6TR" ;
+ALIGN 32 ; SetName(0x080F); STRING "Bartre" "FE6TR" ;
+ALIGN 32 ; SetName(0x0810); STRING "Lugh" "FE6TR" ;
+ALIGN 32 ; SetName(0x0811); STRING "Lilina" "FE6TR" ;
+ALIGN 32 ; SetName(0x0812); STRING "Hugh" "FE6TR" ;
+ALIGN 32 ; SetName(0x0813); STRING "Niime" "FE6TR" ;
+ALIGN 32 ; SetName(0x0814); STRING "Niime" "FE6TR" ;
+ALIGN 32 ; SetName(0x0815); STRING "Raigh" "FE6TR" ;
+ALIGN 32 ; SetName(0x0816); STRING "Larum" "FE6TR" ;
+ALIGN 32 ; SetName(0x0817); STRING "Juno" "FE6TR" ;
+ALIGN 32 ; SetName(0x0818); STRING "Juno" "FE6TR" ;
+ALIGN 32 ; SetName(0x0819); STRING "Thea" "FE6TR" ;
+ALIGN 32 ; SetName(0x081A); STRING "Thea" "FE6TR" ;
+ALIGN 32 ; SetName(0x081B); STRING "Thea" "FE6TR" ;
+ALIGN 32 ; SetName(0x081C); STRING "Shanna" "FE6TR" ;
+ALIGN 32 ; SetName(0x081D); STRING "Zeiss" "FE6TR" ;
+ALIGN 32 ; SetName(0x081E); STRING "Galle" "FE6TR" ;
+ALIGN 32 ; SetName(0x081F); STRING "Elffin" "FE6TR" ;
+ALIGN 32 ; SetName(0x0820); STRING "Cath" "FE6TR" ;
+ALIGN 32 ; SetName(0x0821); STRING "Sophia" "FE6TR" ;
+ALIGN 32 ; SetName(0x0822); STRING "Melady" "FE6TR" ;
+ALIGN 32 ; SetName(0x0823); STRING "Gonzalez" "FE6TR" ;
+ALIGN 32 ; SetName(0x0824); STRING "Gonzalez" "FE6TR" ;
+ALIGN 32 ; SetName(0x0825); STRING "Noah" "FE6TR" ;
+ALIGN 32 ; SetName(0x0826); STRING "Trec" "FE6TR" ;
+ALIGN 32 ; SetName(0x0827); STRING "Zelot" "FE6TR" ;
+ALIGN 32 ; SetName(0x0828); STRING "Echidna" "FE6TR" ;
+ALIGN 32 ; SetName(0x0829); STRING "Echidna" "FE6TR" ;
+ALIGN 32 ; SetName(0x082A); STRING "Cecilia" "FE6TR" ;
+ALIGN 32 ; SetName(0x082B); STRING "Geese" "FE6TR" ;
+ALIGN 32 ; SetName(0x082C); STRING "Geese" "FE6TR" ;
+ALIGN 32 ; SetName(0x082D); STRING "Merlinus" "FE6TR" ;
+ALIGN 32 ; SetName(0x082E); STRING "Eliwood" "FE6TR" ;
+ALIGN 32 ; SetName(0x082F); STRING "Guinivere" "FE6TR" ;
+ALIGN 32 ; SetName(0x0830); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0830); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0830); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0830); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0830); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0831); STRING "Damas" "FE6TR" ;
+ALIGN 32 ; SetName(0x0832); STRING "Ruud" "FE6TR" ;
+ALIGN 32 ; SetName(0x0833); STRING "Slater" "FE6TR" ;
+ALIGN 32 ; SetName(0x0834); STRING "Erik" "FE6TR" ;
+ALIGN 32 ; SetName(0x0835); STRING "Dory" "FE6TR" ;
+ALIGN 32 ; SetName(0x0836); STRING "Wagner" "FE6TR" ;
+ALIGN 32 ; SetName(0x0837); STRING "Debias" "FE6TR" ;
+ALIGN 32 ; SetName(0x0838); STRING "Legance" "FE6TR" ;
+ALIGN 32 ; SetName(0x0839); STRING "Scott" "FE6TR" ;
+ALIGN 32 ; SetName(0x083A); STRING "Nord" "FE6TR" ;
+ALIGN 32 ; SetName(0x083B); STRING "William" "FE6TR" ;
+ALIGN 32 ; SetName(0x083C); STRING "Flaer" "FE6TR" ;
+ALIGN 32 ; SetName(0x083D); STRING "Orlo" "FE6TR" ;
+ALIGN 32 ; SetName(0x083E); STRING "Roberts" "FE6TR" ;
+ALIGN 32 ; SetName(0x083F); STRING "Ein" "FE6TR" ;
+ALIGN 32 ; SetName(0x0840); STRING "Narcian" "FE6TR" ;
+ALIGN 32 ; SetName(0x0841); STRING "Randy" "FE6TR" ;
+ALIGN 32 ; SetName(0x0842); STRING "Rose" "FE6TR" ;
+ALIGN 32 ; SetName(0x0843); STRING "Maggie" "FE6TR" ;
+ALIGN 32 ; SetName(0x0844); STRING "Raith" "FE6TR" ;
+ALIGN 32 ; SetName(0x0845); STRING "Arcardo" "FE6TR" ;
+ALIGN 32 ; SetName(0x0846); STRING "Martel" "FE6TR" ;
+ALIGN 32 ; SetName(0x0847); STRING "Sigune" "FE6TR" ;
+ALIGN 32 ; SetName(0x0848); STRING "Roartz" "FE6TR" ;
+ALIGN 32 ; SetName(0x0849); STRING "Murdock" "FE6TR" ;
+ALIGN 32 ; SetName(0x084A); STRING "Brunnya" "FE6TR" ;
+ALIGN 32 ; SetName(0x084B); STRING "Zephiel" "FE6TR" ;
+ALIGN 32 ; SetName(0x084C); STRING "Idunn" "FE6TR" ;
+ALIGN 32 ; SetName(0x084D); STRING "Idunn" "FE6TR" ;
+ALIGN 32 ; SetName(0x084E); STRING "Jahn" "FE6TR" ;
+ALIGN 32 ; SetName(0x084F); STRING "Zinque" "FE6TR" ;
+ALIGN 32 ; SetName(0x0850); STRING "Monke" "FE6TR" ;
+ALIGN 32 ; SetName(0x0851); STRING "Kel" "FE6TR" ;
+ALIGN 32 ; SetName(0x0852); STRING "Brigand" "FE6TR" ;
+ALIGN 32 ; SetName(0x0853); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0854); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0855); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0856); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0857); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0858); STRING "Laus" "FE6TR" ;
+ALIGN 32 ; SetName(0x0859); STRING "Pirate" "FE6TR" ;
+ALIGN 32 ; SetName(0x085A); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x085B); STRING "Thria" "FE6TR" ;
+ALIGN 32 ; SetName(0x085C); STRING "Rebel" "FE6TR" ;
+ALIGN 32 ; SetName(0x085D); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x085E); STRING "Rebel" "FE6TR" ;
+ALIGN 32 ; SetName(0x085F); STRING "Officials" "FE6TR" ;
+ALIGN 32 ; SetName(0x0860); STRING "Thief" "FE6TR" ;
+ALIGN 32 ; SetName(0x0861); STRING "West Isles" "FE6TR" ;
+ALIGN 32 ; SetName(0x0862); STRING "Pirate" "FE6TR" ;
+ALIGN 32 ; SetName(0x0863); STRING "Armagh" "FE6TR" ;
+ALIGN 32 ; SetName(0x0864); STRING "Robber" "FE6TR" ;
+ALIGN 32 ; SetName(0x0865); STRING "Resistance" "FE6TR" ;
+ALIGN 32 ; SetName(0x0866); STRING "Etruria" "FE6TR" ;
+ALIGN 32 ; SetName(0x0867); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0868); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0869); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x086A); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x086B); STRING "Etruria" "FE6TR" ;
+ALIGN 32 ; SetName(0x086C); STRING "West Isles" "FE6TR" ;
+ALIGN 32 ; SetName(0x086D); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x086E); STRING "Etruria" "FE6TR" ;
+ALIGN 32 ; SetName(0x086F); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0870); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0871); STRING "Etruria" "FE6TR" ;
+ALIGN 32 ; SetName(0x0872); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0873); STRING "Ilia" "FE6TR" ;
+ALIGN 32 ; SetName(0x0874); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0875); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0876); STRING "Etruria" "FE6TR" ;
+ALIGN 32 ; SetName(0x0877); STRING "Thief" "FE6TR" ;
+ALIGN 32 ; SetName(0x0878); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0879); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x087A); STRING "Pirate" "FE6TR" ;
+ALIGN 32 ; SetName(0x087A); STRING "Pirate" "FE6TR" ;
+ALIGN 32 ; SetName(0x087B); STRING "Ilia" "FE6TR" ;
+ALIGN 32 ; SetName(0x087C); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x087D); STRING "Ilia" "FE6TR" ;
+ALIGN 32 ; SetName(0x087E); STRING "Brigand" "FE6TR" ;
+ALIGN 32 ; SetName(0x087F); STRING "Ilia" "FE6TR" ;
+ALIGN 32 ; SetName(0x0880); STRING "Ilia" "FE6TR" ;
+ALIGN 32 ; SetName(0x0881); STRING "Soldier" "FE6TR" ;
+ALIGN 32 ; SetName(0x0882); STRING "Ilia" "FE6TR" ;
+ALIGN 32 ; SetName(0x0883); STRING "Citizen" "FE6TR" ;
+ALIGN 32 ; SetName(0x0884); STRING "Thief" "FE6TR" ;
+ALIGN 32 ; SetName(0x0885); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0886); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0887); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0888); STRING "Thief" "FE6TR" ;
+ALIGN 32 ; SetName(0x0889); STRING "Soldier" "FE6TR" ;
+ALIGN 32 ; SetName(0x088A); STRING "Citizen" "FE6TR" ;
+ALIGN 32 ; SetName(0x088B); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x088C); STRING "Etruria" "FE6TR" ;
+ALIGN 32 ; SetName(0x088D); STRING "Sacae" "FE6TR" ;
+ALIGN 32 ; SetName(0x088E); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x088F); STRING "Djute" "FE6TR" ;
+ALIGN 32 ; SetName(0x0890); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0891); STRING "Sacae" "FE6TR" ;
+ALIGN 32 ; SetName(0x0892); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0893); STRING "Etruria" "FE6TR" ;
+ALIGN 32 ; SetName(0x0894); STRING "Sacae" "FE6TR" ;
+ALIGN 32 ; SetName(0x0895); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0896); STRING "Manakete" "FE6TR" ;
+ALIGN 32 ; SetName(0x0897); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0898); STRING "Dragon" "FE6TR" ;
+ALIGN 32 ; SetName(0x0899); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0899); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x089A); STRING "Henning" "FE6TR" ;
+ALIGN 32 ; SetName(0x089B); STRING "Scollan" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A6); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x089C); STRING "Guerrero" "FE6TR" ;
+ALIGN 32 ; SetName(0x089D); STRING "Oates" "FE6TR" ;
+ALIGN 32 ; SetName(0x089E); STRING "Tick" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A7); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A8); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A9); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x089F); STRING "Thoril" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A0); STRING "Brakul" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A1); STRING "Kudoka" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A2); STRING "Marral" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A3); STRING "Kabul" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A4); STRING "Chan" "FE6TR" ;
+ALIGN 32 ; SetName(0x08A5); STRING "Peres" "FE6TR" ;
+ALIGN 32 ; SetName(0x08AA); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x08AB); STRING "Windham" "FE6TR" ;
+ALIGN 32 ; SetName(0x0893); STRING "Etruria" "FE6TR" ;
+ALIGN 32 ; SetName(0x08AE); STRING "Morgan" "FE6TR" ;
+ALIGN 32 ; SetName(0x085C); STRING "Rebel" "FE6TR" ;
+ALIGN 32 ; SetName(0x0885); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0885); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x0885); STRING "Bern" "FE6TR" ;
+ALIGN 32 ; SetName(0x088A); STRING "Citizen" "FE6TR" ;
+ALIGN 32 ; SetName(0x0883); STRING "Citizen" "FE6TR" ;
+ALIGN 32 ; SetName(0x08AF); STRING "Hector" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B0); STRING "Bors" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B1); STRING "Soldier" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B2); STRING "Soldier" "FE6TR" ;
+ALIGN 32 ; SetName(0x07A8); STRING "Soldiers" "FE6TR" ;
+ALIGN 32 ; SetName(0x0889); STRING "Soldier" "FE6TR" ;
+ALIGN 32 ; SetName(0x07A8); STRING "Soldiers" "FE6TR" ;
+ALIGN 32 ; SetName(0x07A8); STRING "Soldiers" "FE6TR" ;
+ALIGN 32 ; SetName(0x07A8); STRING "Soldiers" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B3); STRING "Archer" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B4); STRING "Peg Kn" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B5); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B5); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B5); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B5); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B5); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x08B5); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x0830); STRING "Bandit" "FE6TR" ;
+ALIGN 32 ; SetName(0x08AC); STRING "Enemy" "FE6TR" ;
+ALIGN 32 ; SetName(0x08AD); STRING "Broken Wall" "FE6TR" ;
+ORG NameStrings + (32*256) 
+
+
+ALIGN 32
+WORD 0 0 0 0 0 0 0 0
 

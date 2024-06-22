@@ -78,7 +78,7 @@
 	
 	ALIGN 4
 	New_Numbers:
-	#incbin "New_Numbers.png.dmp"	//HINT=BIN
+	#incbin "new_numbers.png.dmp"	//HINT=BIN
 	
 	ALIGN 4
 	Func_13350:

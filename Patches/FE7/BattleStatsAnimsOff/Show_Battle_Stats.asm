@@ -98,8 +98,9 @@ lsl		r0,#0x18
 asr		r0,#0x18
 b		DisplayDamage
 DoesDamage:
+ldr		r2,[sp,#0xC]	@ which side
 mov		r3,#0x0
-cmp		r3,r9
+cmp		r2,r3
 bne		Label6
 mov		r3,#0x1
 Label6:

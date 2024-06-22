@@ -1,5 +1,9 @@
+#ifndef SKILLSYS_INSTALLED 
 #define SKILLSYS_INSTALLED 
+#endif 
+#ifndef STRMAG_INSTALLED 
 #define STRMAG_INSTALLED 
+#endif 
 #include ".FE8_Installer.event" 
 
 // Skillsys conflicts - mostly strmag / leveling, loading, & stat screen related 

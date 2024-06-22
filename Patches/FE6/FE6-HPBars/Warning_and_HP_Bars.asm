@@ -12,6 +12,7 @@
 .equ crit_warning_cutoff, 24	@anything less than or equal this won't trigger the !
 
 .if FE6 == 1
+	.equ gWeather, 0x202AA48+0x15 
 	.equ WarningCache, 			0x0203ACC0	@free space in ram. Change this if necessary.
 	.equ OptionByte2, 			0x0202AA66
 	.equ CameraStuff, 			0x0202AA08
@@ -19,6 +20,7 @@
 	.equ CurrentCharPtr, 		0x030044B0
 	.equ Can_Equip_Item, 		0x08016538
 	.equ Get_Item_Crit, 		0x08017224
+	.equ GetItemWeaponEffect,   0x080172f8
 	.equ Check_Effectiveness, 	0x08016A10
 	.equ Talk_Check, 			0x0806AF4C
 	.equ return_addr, 			0x0802241A+1
@@ -31,6 +33,7 @@
 .endif
 
 .if FE7 == 1
+	.equ gWeather, 0x202BBF8+0x15 
 	.equ WarningCache, 			0x0203ACC0	@free space in ram. Change this if necessary.
 	.equ OptionByte2, 			0x0202BC39
 	.equ CameraStuff, 			0x0202BBB8
@@ -38,6 +41,7 @@
 	.equ CurrentCharPtr,		0x03004690
 	.equ Can_Equip_Item, 		0x080161A4
 	.equ Get_Item_Crit, 		0x08017328
+	.equ GetItemWeaponEffect,   0x08017424
 	.equ Check_Effectiveness, 	0x08016820
 	.equ Talk_Check, 			0x080789FC
 	.equ return_addr, 			0x08025C16+1
@@ -50,6 +54,7 @@
 .endif
 
 .if FE8 == 1
+	.equ gWeather, 0x202BCF0+0x15 
 	.equ WarningCache, 			0x0203ACC0	@free space in ram. Change this if necessary.
 	.equ OptionByte2, 			0x0202BD31
 	.equ CameraStuff, 			0x0202BCB0
@@ -57,6 +62,7 @@
 	.equ CurrentCharPtr,		0x03004E50
 	.equ Can_Equip_Item, 		0x08016574
 	.equ Get_Item_Crit, 		0x08017624
+	.equ GetItemWeaponEffect,   0x08017724 
 	.equ Check_Effectiveness, 	0x08016BEC
 	.equ Slayer_Check, 			0x08016C88
 	.equ Talk_Check, 			0x08083F68
@@ -71,6 +77,12 @@
 
 push	{r4-r7}
 add		sp,#-0x10
+ldr r0, =gWeather 
+ldrb r0, [r0] 
+cmp r0, #7 
+bne HpBars 
+b GoBack @ do nothing if cloudy 
+
 @First, check if all this stuff is even enabled
 ldr		r0,=OptionByte2
 ldrb	r0,[r0]
@@ -228,6 +240,13 @@ mov		r14,r1
 .short	0xF800
 cmp		r0,#crit_warning_cutoff
 bgt		IsCritty
+ldrh	r0,[r4,r5]
+ldr		r1,=GetItemWeaponEffect @080172f8 8017424 8017724 
+mov		r14,r1
+.short	0xF800
+cmp		r0,#4 @ devil 
+beq		IsCritty
+
 NextItem:
 add		r5,#2
 cmp		r5,#inventory_slot1+8

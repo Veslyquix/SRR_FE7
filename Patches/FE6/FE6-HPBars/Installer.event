@@ -5,7 +5,7 @@
 	ERROR Wrong ROM
 #endif
 
-#include EAStdlib.event
+#include "EAstdlib.event"
 #include "Extensions/Hack Installation.txt"
 
 PUSH
@@ -49,4 +49,4 @@ POIN HPFrames+88
 
 ALIGN 4
 HPBarGraphic:
-#incbin "Fe7-Hp Bars graphics.png.dmp"	//HINT=BIN
+#incbin "FE6-HpBars.dmp"	

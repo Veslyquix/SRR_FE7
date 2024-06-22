@@ -1,3 +1,5 @@
+#ifndef IMPROVED_SOUND_MIXER
+
 #ifndef callHackNew 
 	#define callHackNew(offset) 		"BYTE $01 $4B $9E $46 $00 $F8 $01 $E0; POIN (offset|0x1)"
 #endif 
@@ -11,10 +13,19 @@
 #include "Patches/FE8_AsmHooks.lyn.event" 
 
 #ifdef SKILLSYS_INSTALLED
+#ifndef VeslyBuildfile
 MESSAGE Open FE8_Installer and read / config things please 
 //asdf // add two slashes to comment out this line 
 #endif 
+#endif 
 
+ALIGN 4 
+DisplayTimedHitsOption:
+#ifdef VeslyBuildfile 
+WORD 1 
+#else 
+WORD 0 
+#endif 
 //#define JankyPalettes // Uncomment if you want to always use char palettes, even with classes randomized 
 #ifndef VeslyBuildfile
 	#define NeverRandomizeMusic // comment this out if you want music randomized 
@@ -22,10 +33,12 @@ MESSAGE Open FE8_Installer and read / config things please
 #endif 
 
 #ifndef RandomizerRam 
-#define RandomizerRam 0x203EC24 // 8 bytes of 0x3A unit BWL data 
+#define RandomizerRam 0x203EA34 // 12 bytes of unit id 0x1B (Enemy) BWL data //0x203EC24 // 8 bytes of 0x3A unit BWL data 
 //#define RandomizerRam 0x30017AC // alternative: 8 bytes of Valni records 
 #endif 
-
+ALIGN 4
+BonusItemChance: 
+WORD 10
 CasualModeFlag:
 WORD 0xB0 
 RandomizePrepShop:
@@ -48,9 +61,17 @@ DefaultConfigToVanilla:
 WORD 0
 MaxWeaponHitrate:
 WORD 250 // make this 125 if you like 
+IncludeMonstersWithoutWEXP:
+WORD 0
+#define statCap 60 
+maxStat:
+WORD statCap 
 
 ALIGN 4 
 MaxItems_Link:
+#ifdef VeslyBuildfile 
+WORD 0xBC 
+#endif 
 WORD 0 // If 0, it'll read through your item editor and count 
 // until it finds an item with an ID that does not match (eg. says 0) 
 MaxClasses_Link:
@@ -84,19 +105,28 @@ CharExceptions: //
 FILL(256*2) 
 
 
+NeverChangeItem(0xA6) // Nightmare 
+NeverChangeItem(0xA5) // Dance  
+NeverChangeItem(0xB6) // Alacalibur has no sfx 
  
 NeverChangeFromItem(0x6C) // Vulnerary 
 NeverChangeIntoItem(0xB5) // Stone 
 NeverChangeClass(0x66) // Demon King 
 
+NeverChangeIntoClass(0xE) // Some manakete
 NeverChangeIntoClass(0x10) // Some mercenary thing 
+NeverChangeIntoClass(0x51) // Phantom
 
+NeverChangeChar(0xFD) // arena enemy randomized breaks things 
+NeverChangeChar(0xBE) // Demon king 
 //NeverChangeChar(1)
 //NeverChangeChar(0x68)
 
 #ifdef SKILLSYS_INSTALLED
+#ifndef VeslyBuildfile
 MESSAGE Read/edit until this line unless you want to change your stat screen first page layout below 
 //qwer // add two slashes to comment out this line 
+#endif 
 #endif 
 
 
@@ -210,6 +240,75 @@ VramDest_DebugFont:
 WORD 0x4800 // in glowy 
 
 PUSH 
+
+ORG $10b80
+jumpToHack(FE8_ForcedPromotionHook) 
+
+ORG $5E520 
+BYTE 0xA // Fimbulvetr fix 
+
+#ifdef VeslyBuildfile
+// default summoner from list 
+ORG $7ad4c 
+WORD 0 // 0 = Ewan, 1 = Knoll, 2 = Lyon 
+// See these links: https://github.com/FireEmblemUniverse/fireemblem8u/blob/60f3ef67d63c8f71ec15eec9a8675814c966ddbc/src/classchg-data.c#L590
+// https://github.com/FireEmblemUniverse/fireemblem8u/blob/60f3ef67d63c8f71ec15eec9a8675814c966ddbc/src/mapanim_summon.c#L32
+
+ORG $7AF5E // don't 0 out phantom wexp 
+SHORT $46C0 
+
+ORG $c5444
+jumpToHack(TitleScreen_FE8) 
+
+ORG $a9028
+jumpToHack(SaveScreen_FE8) 
+
+// animation id for ballistas 
+ORG $8AF172; BYTE 0x9F
+ORG $8AF176; BYTE 0x9F
+ORG $8AF17A; BYTE 0x9F
+ORG $8AF18A; BYTE 0x9F
+ORG $8AF18E; BYTE 0x9F
+ORG $8AF192; BYTE 0x9F
+ORG $8AF1A2; BYTE 0x9F
+ORG $8AF1A6; BYTE 0x9F
+ORG $8AF1AA; BYTE 0x9F
+
+ORG $3cc90 // $31740 $37D84
+jumpToHack(MaybeChargeAtPlayer)
+
+//Patches Speed ​​up the gray poison mist map effect when receiving poison damage. (PatchForm) Speed ​​up the gray poison mist map effect when receiving poison damage.2024-06-08 1:38:03 PM
+ORG $9A6FA0
+BYTE  $03;
+ORG $9A6FA4
+BYTE  $03;
+ORG $9A6FA8
+BYTE  $03;
+ORG $9A6FAC
+BYTE  $03;
+ORG $9A6FB0
+BYTE  $03;
+ORG $9A6FB4
+BYTE  $03;
+ORG $9A6FB8
+BYTE  $03;
+ORG $9A6FBC
+BYTE  $03;
+ORG $9A6FC0
+BYTE  $02;
+ORG $9A6FC4
+BYTE  $02;
+ORG $9A6FC8
+BYTE  $02;
+ORG $9A6FCC
+BYTE  $02;
+
+ORG $2523C 
+callHackNew(PreventPhantomTrading)
+
+#endif 
+
+
 ORG $A20390
 PROC_CALL_ROUTINE_2(FE8_StartDifficultySelection)
 
@@ -271,7 +370,416 @@ ORG 0x11CC
 callHackNew(RandColoursHook)
 SHORT 0x46C0
 
+ORG $3A15C
+callHackNew(MakeStolenItemDroppable_FE8)
+SHORT 0x46C0
+
+#ifdef VeslyBuildfile
+ORG $7894 // in 7854 // fe7 8008E34 fe6 800a4f4
+callHackNew(HookLoadFace_FE8)
+
+ORG $B86D8 
+callHackNew(HookWMStartFace_FE8) 
+
+ORG $192BC 
+jumpToHack(HookGetUnitPortraitId_FE8) 
+ORG $192DE 
+SHORT $1c10 // mov r0, r2 
+
+// 80192F4	GetUnitChibiId // fe7 8018BF4 fe6 8018500
+ORG $19308 
+jumpToHack(HookGetUnitMiniPortraitId_FE8)
+ORG $1932A
+SHORT $46c0 
+
+ORG $CD6C8 
+jumpToHack(GetTraineePromoPortraitId_FE8)
+
+ORG $73DBC
+jumpToHack(GetBattleLevelUpPortraitId_FE8)
+
+ORG $7F25C 
+callHackNew(GetMapLevelUpPortraitId_FE8)
+
+#endif 
+
 POP 
+
+
+ALIGN 4 
+ReplacePortraitTable:
+FILL(256) 
+
+#define ReplacePortraitEntry(id, newID) "PUSH; ORG ReplacePortraitTable + id; BYTE newID; POP" 
+
+#ifdef VeslyBuildfile
+ReplacePortraitEntry(3, 2) // Replace Eirika closed eyes   
+ReplacePortraitEntry(0xB, 0xA)  
+ReplacePortraitEntry(0xD, 0xC)  
+ReplacePortraitEntry(0x12, 0x11)  
+ReplacePortraitEntry(0x15, 0x14)  
+ReplacePortraitEntry(0x17, 0x16)  
+ReplacePortraitEntry(0x1d, 0x1c)  
+ReplacePortraitEntry(0x1f, 0x1e)  
+ReplacePortraitEntry(0x27, 0x26)  
+ReplacePortraitEntry(0x28, 0x26)  
+ReplacePortraitEntry(0x2d, 0x2)  
+ReplacePortraitEntry(0x2e, 0x14)  
+ReplacePortraitEntry(0x2f, 0x29)  
+ReplacePortraitEntry(0x41, 0x40)  
+ReplacePortraitEntry(0x47, 0x46)  
+ReplacePortraitEntry(0x4A, 0x46)  
+ReplacePortraitEntry(0x4e, 0x40)  
+ReplacePortraitEntry(0x4f, 0x40)  
+ReplacePortraitEntry(0x50, 0x46)  
+ReplacePortraitEntry(0x57, 0x56)  
+#endif 
+
+ALIGN 4 
+SkillExceptions:
+FILL 256*2
+#define NeverRandSkill(id) "PUSH; ORG SkillExceptions + (id*2); BYTE 1 1; POP" 
+#ifdef SKILLSYS_INSTALLED 
+NeverRandSkill(DanceID)
+//NeverRandSkill(SummonID)
+NeverRandSkill(CunningID)
+NeverRandSkill(SlayerID)
+#endif 
+
+ALIGN 4 
+VanillaSkill:
+FILL 256 
+#define VanillaSkill(id) "PUSH; ORG VanillaSkill + id; BYTE 1; POP" 
+VanillaSkill(SupplyID)
+VanillaSkill(CantoID)
+VanillaSkill(GreatShieldID)
+VanillaSkill(CunningID)
+VanillaSkill(CritUpID)
+VanillaSkill(SureShotID)
+VanillaSkill(SlayerID)
+VanillaSkill(SummonID)
+VanillaSkill(DanceID)
+VanillaSkill(StealID)
+VanillaSkill(LethalityID)
+VanillaSkill(LunaID)
+VanillaSkill(LockTouchID)
+
+ALIGN 4 
+AlwaysSkillTable:
+FILL 256 
+#ifdef SKILLSYS_INSTALLED 
+#define AlwaysSkill(id) "PUSH; ORG AlwaysSkillTable + id; BYTE 1; POP" 
+AlwaysSkill(CantoPlusID)
+AlwaysSkill(CaptureID)
+AlwaysSkill(LifeAndDeathID)
+AlwaysSkill(SoulSapID)
+AlwaysSkill(RecklessFighterID)
+AlwaysSkill(MultiscaleID)
+AlwaysSkill(ShadePlusID)
+AlwaysSkill(RallyChaosID)
+AlwaysSkill(EternalVanityID)
+AlwaysSkill(SpectrumInitID)
+AlwaysSkill(AcrobatID)
+AlwaysSkill(PassID)
+AlwaysSkill(DespoilID)
+AlwaysSkill(PickupID)
+AlwaysSkill(FuryID)
+AlwaysSkill(FailGaleID)
+AlwaysSkill(GaleforceID)
+AlwaysSkill(GrislyWoundID)
+AlwaysSkill(NoGuardID)
+AlwaysSkill(SteadyBrawlerID)
+AlwaysSkill(DazzleID)
+AlwaysSkill(PridefulWarriorID)
+AlwaysSkill(WaryFighterID)
+AlwaysSkill(StealPlusID)
+AlwaysSkill(RightfulGodID)
+AlwaysSkill(VantagePlusID)
+AlwaysSkill(NiceThighsID)
+AlwaysSkill(NonconformingID)
+AlwaysSkill(ReciprocalAidID)
+AlwaysSkill(BlackMagicID)
+AlwaysSkill(BlossomID)
+AlwaysSkill(DarkBargainID)
+//AlwaysSkill(DevilsWhimID) // if skill defined, maybe 
+#endif 
+
+#ifndef TextTable 
+	#define TextTable 0x15D48C 
+#endif 
+#ifndef setText 
+#define setText(textID, offset) "PUSH; ORG (TextTable+(4*textID)); POIN (offset|0x80000000); POP"
+#endif 
+#ifdef VeslyBuildfile
+	#define SetName(id) "{ addr: ; setText(id, addr) ; }"
+#else 
+	#define SetName(id) "ALIGN 16"
+#endif 
+
+ALIGN 16
+NameStrings: 
+FILL 16*256 
+ORG NameStrings 
+ALIGN 16 ; SetName(0x0212); String("Eirika"); 
+ALIGN 16 ; SetName(0x0213); String("Seth"); 
+ALIGN 16 ; SetName(0x0214); String("Gilliam"); 
+ALIGN 16 ; SetName(0x0215); String("Franz"); 
+ALIGN 16 ; SetName(0x0216); String("Moulder"); 
+ALIGN 16 ; SetName(0x0217); String("Vanessa"); 
+ALIGN 16 ; SetName(0x0218); String("Ross"); 
+ALIGN 16 ; SetName(0x0219); String("Neimi"); 
+ALIGN 16 ; SetName(0x021A); String("Colm"); 
+ALIGN 16 ; SetName(0x021B); String("Garcia"); 
+ALIGN 16 ; SetName(0x021C); String("Innes"); 
+ALIGN 16 ; SetName(0x021D); String("Lute"); 
+ALIGN 16 ; SetName(0x021E); String("Natasha"); 
+ALIGN 16 ; SetName(0x021F); String("Cormag"); 
+ALIGN 16 ; SetName(0x0220); String("Ephraim"); 
+ALIGN 16 ; SetName(0x0221); String("Forde"); 
+ALIGN 16 ; SetName(0x0222); String("Kyle"); 
+ALIGN 16 ; SetName(0x0223); String("Amelia"); 
+ALIGN 16 ; SetName(0x0224); String("Artur"); 
+ALIGN 16 ; SetName(0x0225); String("Gerik"); 
+ALIGN 16 ; SetName(0x0226); String("Tethys"); 
+ALIGN 16 ; SetName(0x0227); String("Marisa"); 
+ALIGN 16 ; SetName(0x0228); String("Saleh"); 
+ALIGN 16 ; SetName(0x0229); String("Ewan"); 
+ALIGN 16 ; SetName(0x022A); String("L'Arachel"); 
+ALIGN 16 ; SetName(0x022B); String("Dozla"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x022D); String("Rennac"); 
+ALIGN 16 ; SetName(0x022E); String("Duessel"); 
+ALIGN 16 ; SetName(0x022F); String("Myrrh"); 
+ALIGN 16 ; SetName(0x0230); String("Knoll"); 
+ALIGN 16 ; SetName(0x0231); String("Joshua"); 
+ALIGN 16 ; SetName(0x0232); String("Syrene"); 
+ALIGN 16 ; SetName(0x0233); String("Tana"); 
+ALIGN 16 ; SetName(0x0234); String("Lyon"); 
+ALIGN 16 ; SetName(0x0236); String("Orson"); 
+ALIGN 16 ; SetName(0x024A); String("Glen"); 
+ALIGN 16 ; SetName(0x0238); String("Selena"); 
+ALIGN 16 ; SetName(0x0237); String("Valter"); 
+ALIGN 16 ; SetName(0x0246); String("Riev"); 
+ALIGN 16 ; SetName(0x0244); String("Caellach"); 
+ALIGN 16 ; SetName(0x025B); String("Fado"); 
+ALIGN 16 ; SetName(0x0260); String("Ismaire"); 
+ALIGN 16 ; SetName(0x025C); String("Hayden"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x02F1); String("Phantom"); 
+ALIGN 16 ; SetName(0x026D); String("Summon"); 
+ALIGN 16 ; SetName(0x026C); String("Summonern"); 
+ALIGN 16 ; SetName(0x02F1); String("Phantom"); 
+ALIGN 16 ; SetName(0x02F1); String("Phantom"); 
+ALIGN 16 ; SetName(0x0234); String("Lyon"); 
+ALIGN 16 ; SetName(0x0235); String("Morva"); 
+ALIGN 16 ; SetName(0x0236); String("Orson"); 
+ALIGN 16 ; SetName(0x0237); String("Valter"); 
+ALIGN 16 ; SetName(0x0238); String("Selena"); 
+ALIGN 16 ; SetName(0x0237); String("Valter"); 
+ALIGN 16 ; SetName(0x0239); String("Breguet"); 
+ALIGN 16 ; SetName(0x023A); String("Bone"); 
+ALIGN 16 ; SetName(0x023B); String("Bazba"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x023C); String("Saar"); 
+ALIGN 16 ; SetName(0x023D); String("Novala"); 
+ALIGN 16 ; SetName(0x023E); String("Murray"); 
+ALIGN 16 ; SetName(0x023F); String("Tirado"); 
+ALIGN 16 ; SetName(0x0240); String("Binks"); 
+ALIGN 16 ; SetName(0x0241); String("Pablo"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0242); String("Aias"); 
+ALIGN 16 ; SetName(0x0243); String("Carlyle"); 
+ALIGN 16 ; SetName(0x0244); String("Caellach"); 
+ALIGN 16 ; SetName(0x0241); String("Pablo"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0246); String("Riev"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0247); String("Gheb"); 
+ALIGN 16 ; SetName(0x0248); String("Beran"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0250); String("Hunter"); 
+ALIGN 16 ; SetName(0x024F); String("Bandit"); 
+ALIGN 16 ; SetName(0x024F); String("Bandit"); 
+ALIGN 16 ; SetName(0x024F); String("Bandit"); 
+ALIGN 16 ; SetName(0x0249); String("O'Neill"); 
+ALIGN 16 ; SetName(0x024A); String("Glen"); 
+ALIGN 16 ; SetName(0x024B); String("Zonta"); 
+ALIGN 16 ; SetName(0x024C); String("Vigarde"); 
+ALIGN 16 ; SetName(0x0234); String("Lyon"); 
+ALIGN 16 ; SetName(0x0236); String("Orson"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024D); String("Soldier"); 
+ALIGN 16 ; SetName(0x024E); String("Remnant"); 
+ALIGN 16 ; SetName(0x0254); String("Cutthroat"); 
+ALIGN 16 ; SetName(0x024E); String("Remnant"); 
+ALIGN 16 ; SetName(0x024E); String("Remnant"); 
+ALIGN 16 ; SetName(0x024E); String("Remnant"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0253); String("Mercenary"); 
+ALIGN 16 ; SetName(0x0251); String("Sellsword"); 
+ALIGN 16 ; SetName(0x0252); String("Remnant"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0256); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x0255); String("Monster"); 
+ALIGN 16 ; SetName(0x025A); String("Fomortiis"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0262); String("Frelian"); 
+ALIGN 16 ; SetName(0x0262); String("Frelian"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x025B); String("Fado"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x025C); String("Hayden"); 
+ALIGN 16 ; SetName(0x025E); String("Mansel"); 
+ALIGN 16 ; SetName(0x025D); String("Klimt"); 
+ALIGN 16 ; SetName(0x025F); String("Dara"); 
+ALIGN 16 ; SetName(0x0260); String("Ismaire"); 
+ALIGN 16 ; SetName(0x0261); String("Messenger"); 
+ALIGN 16 ; SetName(0x0263); String("Rausten"); 
+ALIGN 16 ; SetName(0x0263); String("Rausten"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0266); String("River Folk"); 
+ALIGN 16 ; SetName(0x0266); String("River Folk"); 
+ALIGN 16 ; SetName(0x0266); String("River Folk"); 
+ALIGN 16 ; SetName(0x0266); String("River Folk"); 
+ALIGN 16 ; SetName(0x0266); String("River Folk"); 
+ALIGN 16 ; SetName(0x0265); String("Renais Cit."); 
+ALIGN 16 ; SetName(0x0265); String("Renais Cit."); 
+ALIGN 16 ; SetName(0x0265); String("Renais Cit."); 
+ALIGN 16 ; SetName(0x0264); String("Citizen"); 
+ALIGN 16 ; SetName(0x0267); String("Enemy"); 
+ALIGN 16 ; SetName(0x0268); String("Wall"); 
+ALIGN 16 ; SetName(0x0269); String("Snag"); 
+ORG NameStrings + (16*256) 
+
+//ALIGN 16 ; SetName(0x0253); String("Mercenary"); 
+// todo: replace dummy names 
+
 
 ALIGN 4
 DIS_matrixTable:
@@ -282,6 +790,12 @@ NeverRandomizeColours:
 WORD 0 
 #else 
 WORD 1
+#endif
+PortraitColoursPastThisAreNotSkin:
+#ifdef VeslyBuildfile
+WORD 5 // vanilla portraits use the first few colours for skin  
+#else 
+WORD 0 
 #endif 
 
 ALIGN 4 
@@ -334,6 +848,16 @@ WORD 1
 ALIGN 4
 IconOrr:
 WORD IconOrrValue
+SRR_TotalOptions:
+#ifdef VeslyBuildfile 
+#ifdef SKILLSYS_INSTALLED 
+WORD 18
+#else 
+WORD 17
+#endif  
+#else 
+WORD 16 
+#endif 
 
 // if you don't have a max hp getter, these are used 
 PlayerMaxHP:
@@ -342,7 +866,18 @@ EnemyBossMaxHP:
 WORD 80
 EnemyMaxHP:
 WORD 60  
-
+NumberOfSkills:
+WORD 0xE3
+DisplayRandomSkillsOption:
+#ifdef VeslyBuildfile 
+	#ifdef SKILLSYS_INSTALLED 
+		WORD 1 // This requires editing SkillTester.c 
+	#else 
+		WORD 0
+	#endif  
+#else 
+	WORD 0 
+#endif 
 
 ALIGN 4 
 NeverRandomizeBGM:
@@ -361,4 +896,10 @@ MaxItems:
 WORD RandomizerRam+8
 MaxClasses:
 WORD RandomizerRam+9
-
+RecruitValues:
+WORD RandomizerRam+10
+AlwaysSkill:
+WORD RandomizerRam+11
+#else 
+MESSAGE IMPROVED_SOUND_MIXER is not compatible with the self randomizing rom. Please comment it out in config.event to install. 
+#endif 
